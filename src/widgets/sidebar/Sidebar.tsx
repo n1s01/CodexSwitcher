@@ -1,5 +1,8 @@
 import styles from "./Sidebar.module.css";
-import { ChevronLeftIcon, ChevronRightIcon } from "../../shared/ui/icons/AppIcons";
+import {
+  SidebarCollapseIcon,
+  SidebarExpandIcon,
+} from "../../shared/ui/icons/AppIcons";
 import type { NavItem, TabId } from "../../features/navigation/model/types";
 import logo from "../../assets/logo.png";
 
@@ -71,11 +74,15 @@ export function Sidebar({
         title={isCollapsed ? "Развернуть" : "Свернуть"}
       >
         <span className={styles.collapseButtonIconStack} aria-hidden="true">
-          <span className={`${styles.collapseButtonIcon} ${styles.collapseButtonIconExpand}`}>
-            <ChevronRightIcon />
+          <span
+            className={`${styles.collapseButtonIcon} ${styles.collapseButtonIconExpand}`}
+          >
+            <SidebarExpandIcon />
           </span>
-          <span className={`${styles.collapseButtonIcon} ${styles.collapseButtonIconCollapse}`}>
-            <ChevronLeftIcon />
+          <span
+            className={`${styles.collapseButtonIcon} ${styles.collapseButtonIconCollapse}`}
+          >
+            <SidebarCollapseIcon />
           </span>
         </span>
         <span className={styles.collapseLabel} aria-hidden={isCollapsed}>

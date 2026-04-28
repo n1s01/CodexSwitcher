@@ -14,6 +14,26 @@ export function ChevronRightIcon() {
   );
 }
 
+export function SidebarCollapseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4.75" y="4.75" width="14.5" height="14.5" rx="3.25" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9.5 7.75v8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M15 9.25L12.25 12 15 14.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function SidebarExpandIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4.75" y="4.75" width="14.5" height="14.5" rx="3.25" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9.5 7.75v8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M13 9.25L15.75 12 13 14.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function HomeIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
