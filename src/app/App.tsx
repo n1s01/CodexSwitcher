@@ -18,6 +18,7 @@ const pageByTab: Record<TabId, ReactNode> = {
 const DEFAULT_SIDEBAR_WIDTH = 280;
 const COLLAPSED_SIDEBAR_WIDTH = 76;
 const MIN_EXPANDED_SIDEBAR_WIDTH = 220;
+const MAX_SIDEBAR_WIDTH_RATIO = 0.35;
 const RESIZE_HANDLE_WIDTH = 12;
 const SIDEBAR_EXPAND_DURATION = 380;
 const SIDEBAR_COLLAPSE_DURATION = 320;
@@ -42,7 +43,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
-  const [maxSidebarWidth, setMaxSidebarWidth] = useState(() => window.innerWidth * 0.5);
+  const [maxSidebarWidth, setMaxSidebarWidth] = useState(() => window.innerWidth * MAX_SIDEBAR_WIDTH_RATIO);
   const [isResizing, setIsResizing] = useState(false);
   const [dragSidebarWidth, setDragSidebarWidth] = useState<number | null>(null);
   const [sidebarMotionState, setSidebarMotionState] = useState<SidebarMotionState>("idle");
@@ -62,6 +63,18 @@ export function App() {
   const currentSidebarWidth = isResizing ? resizingWidth : collapsed ? collapsedWidth : expandedWidth;
   const disableSidebarTransition = isResizing;
 
+  const getSidebarSnapState = (width: number) => {
+    if (!canExpandSidebar) {
+      return "collapsed" as const;
+    }
+
+    const snappedExpandedWidth = Math.min(Math.max(width, MIN_EXPANDED_SIDEBAR_WIDTH), maxSidebarWidth);
+    const distanceToCollapsed = Math.abs(width - collapsedWidth);
+    const distanceToExpanded = Math.abs(snappedExpandedWidth - width);
+
+    return distanceToExpanded <= distanceToCollapsed ? "expanded" : "collapsed";
+  };
+
   useEffect(() => {
     const workspace = workspaceRef.current;
 
@@ -70,7 +83,7 @@ export function App() {
     }
 
     const updateMaxSidebarWidth = (workspaceWidth: number) => {
-      setMaxSidebarWidth(Math.max(workspaceWidth * 0.5, 0));
+      setMaxSidebarWidth(Math.max(workspaceWidth * MAX_SIDEBAR_WIDTH_RATIO, 0));
     };
 
     updateMaxSidebarWidth(workspace.getBoundingClientRect().width);
@@ -125,7 +138,7 @@ export function App() {
 
       const workspaceRect = workspace.getBoundingClientRect();
       const nextWidth = event.clientX - workspaceRect.left - resizeGrabOffsetRef.current;
-      const nextMaxWidth = workspaceRect.width * 0.5;
+      const nextMaxWidth = workspaceRect.width * MAX_SIDEBAR_WIDTH_RATIO;
       const clampedWidth = Math.min(Math.max(nextWidth, collapsedWidth), nextMaxWidth);
 
       setDragSidebarWidth(clampedWidth);
@@ -140,10 +153,22 @@ export function App() {
     };
 
     const stopResizing = () => {
+      const finalWidth = dragSidebarWidth ?? currentSidebarWidth;
+
       setDragSidebarWidth(null);
       setIsResizing(false);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+
+      if (getSidebarSnapState(finalWidth) === "expanded") {
+        startSidebarMotion("expanding");
+        setSidebarWidth(Math.min(Math.max(finalWidth, MIN_EXPANDED_SIDEBAR_WIDTH), maxSidebarWidth));
+        setCollapsed(false);
+        return;
+      }
+
+      startSidebarMotion("collapsing");
+      setCollapsed(true);
     };
 
     document.body.style.cursor = "ew-resize";
@@ -157,7 +182,7 @@ export function App() {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", stopResizing);
     };
-  }, [collapsedWidth, isResizing]);
+  }, [canExpandSidebar, collapsedWidth, currentSidebarWidth, dragSidebarWidth, isResizing, maxSidebarWidth]);
 
   const startSidebarMotion = (nextMotionState: SidebarMotionState) => {
     if (sidebarMotionTimeoutRef.current !== null) {

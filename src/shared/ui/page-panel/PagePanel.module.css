@@ -1,4 +1,6 @@
-.panel {}
+.panel {
+  padding: 0;
+}
 
 .heading {
   font-size: clamp(1.2rem, 1rem + 0.7vw, 1.35rem);
