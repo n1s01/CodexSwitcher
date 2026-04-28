@@ -1,5 +1,4 @@
-import { useState, type ReactNode } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import styles from "./App.module.css";
 import "./styles.css";
 import { navItems } from "../features/navigation/model/nav-items";
@@ -7,14 +6,8 @@ import type { TabId } from "../features/navigation/model/types";
 import { AccountsPage } from "../pages/accounts/ui/AccountsPage";
 import { HomePage } from "../pages/home/ui/HomePage";
 import { SettingsPage } from "../pages/settings/ui/SettingsPage";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  WindowCloseIcon,
-  WindowMaximizeIcon,
-  WindowMinimizeIcon,
-} from "../shared/ui/icons/AppIcons";
-import logo from "../assets/logo.png";
+import { Sidebar } from "../widgets/sidebar/Sidebar";
+import { Titlebar } from "../widgets/titlebar/Titlebar";
 
 const pageByTab: Record<TabId, ReactNode> = {
   home: <HomePage />,
@@ -22,7 +15,14 @@ const pageByTab: Record<TabId, ReactNode> = {
   settings: <SettingsPage />,
 };
 
-const appWindow = getCurrentWindow();
+const DEFAULT_SIDEBAR_WIDTH = 280;
+const COLLAPSED_SIDEBAR_WIDTH = 76;
+const MIN_EXPANDED_SIDEBAR_WIDTH = 220;
+const RESIZE_HANDLE_WIDTH = 12;
+const SIDEBAR_EXPAND_DURATION = 380;
+const SIDEBAR_COLLAPSE_DURATION = 320;
+
+type SidebarMotionState = "idle" | "expanding" | "collapsing";
 
 function detectOs() {
   const platform = `${navigator.platform} ${navigator.userAgent}`;
@@ -41,78 +41,207 @@ function detectOs() {
 export function App() {
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [collapsed, setCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [maxSidebarWidth, setMaxSidebarWidth] = useState(() => window.innerWidth * 0.5);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragSidebarWidth, setDragSidebarWidth] = useState<number | null>(null);
+  const [sidebarMotionState, setSidebarMotionState] = useState<SidebarMotionState>("idle");
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const resizeGrabOffsetRef = useRef(RESIZE_HANDLE_WIDTH / 2);
+  const sidebarMotionTimeoutRef = useRef<number | null>(null);
   const os = detectOs();
   const isMac = os === "macos";
   const isWindows = os === "windows";
+  const canExpandSidebar = maxSidebarWidth >= MIN_EXPANDED_SIDEBAR_WIDTH;
+  const collapsedWidth = Math.min(COLLAPSED_SIDEBAR_WIDTH, maxSidebarWidth);
+  const resizingWidth =
+    dragSidebarWidth === null
+      ? collapsed ? collapsedWidth : Math.min(Math.max(sidebarWidth, collapsedWidth), maxSidebarWidth)
+      : Math.min(Math.max(dragSidebarWidth, collapsedWidth), maxSidebarWidth);
+  const expandedWidth = Math.min(Math.max(sidebarWidth, MIN_EXPANDED_SIDEBAR_WIDTH), maxSidebarWidth);
+  const currentSidebarWidth = isResizing ? resizingWidth : collapsed ? collapsedWidth : expandedWidth;
+  const disableSidebarTransition = isResizing;
+
+  useEffect(() => {
+    const workspace = workspaceRef.current;
+
+    if (!workspace) {
+      return undefined;
+    }
+
+    const updateMaxSidebarWidth = (workspaceWidth: number) => {
+      setMaxSidebarWidth(Math.max(workspaceWidth * 0.5, 0));
+    };
+
+    updateMaxSidebarWidth(workspace.getBoundingClientRect().width);
+
+    const observer = new ResizeObserver(([entry]) => {
+      updateMaxSidebarWidth(entry.contentRect.width);
+    });
+
+    observer.observe(workspace);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    setSidebarWidth((currentWidth) => Math.min(currentWidth, maxSidebarWidth));
+    setDragSidebarWidth((currentWidth) => {
+      if (currentWidth === null) {
+        return null;
+      }
+
+      return Math.min(currentWidth, maxSidebarWidth);
+    });
+  }, [maxSidebarWidth]);
+
+  useEffect(() => {
+    return () => {
+      if (sidebarMotionTimeoutRef.current !== null) {
+        window.clearTimeout(sidebarMotionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!collapsed && !canExpandSidebar) {
+      setCollapsed(true);
+    }
+  }, [canExpandSidebar, collapsed]);
+
+  useEffect(() => {
+    if (!isResizing) {
+      return undefined;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const workspace = workspaceRef.current;
+
+      if (!workspace) {
+        return;
+      }
+
+      const workspaceRect = workspace.getBoundingClientRect();
+      const nextWidth = event.clientX - workspaceRect.left - resizeGrabOffsetRef.current;
+      const nextMaxWidth = workspaceRect.width * 0.5;
+      const clampedWidth = Math.min(Math.max(nextWidth, collapsedWidth), nextMaxWidth);
+
+      setDragSidebarWidth(clampedWidth);
+      setSidebarWidth(clampedWidth);
+
+      if (clampedWidth < MIN_EXPANDED_SIDEBAR_WIDTH || nextMaxWidth < MIN_EXPANDED_SIDEBAR_WIDTH) {
+        setCollapsed(true);
+        return;
+      }
+
+      setCollapsed(false);
+    };
+
+    const stopResizing = () => {
+      setDragSidebarWidth(null);
+      setIsResizing(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopResizing);
+
+    return () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopResizing);
+    };
+  }, [collapsedWidth, isResizing]);
+
+  const startSidebarMotion = (nextMotionState: SidebarMotionState) => {
+    if (sidebarMotionTimeoutRef.current !== null) {
+      window.clearTimeout(sidebarMotionTimeoutRef.current);
+    }
+
+    setSidebarMotionState(nextMotionState);
+
+    if (nextMotionState === "idle") {
+      sidebarMotionTimeoutRef.current = null;
+      return;
+    }
+
+    const duration =
+      nextMotionState === "expanding"
+        ? SIDEBAR_EXPAND_DURATION
+        : SIDEBAR_COLLAPSE_DURATION;
+
+    sidebarMotionTimeoutRef.current = window.setTimeout(() => {
+      setSidebarMotionState("idle");
+      sidebarMotionTimeoutRef.current = null;
+    }, duration);
+  };
+
+  const handleToggleCollapse = () => {
+    if (collapsed) {
+      if (!canExpandSidebar) {
+        return;
+      }
+
+      startSidebarMotion("expanding");
+      setSidebarWidth((currentWidth) => Math.min(Math.max(currentWidth, MIN_EXPANDED_SIDEBAR_WIDTH), maxSidebarWidth));
+      setCollapsed(false);
+      return;
+    }
+
+    startSidebarMotion("collapsing");
+    setCollapsed(true);
+  };
+
+  const handleResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    startSidebarMotion("idle");
+    const workspace = workspaceRef.current;
+
+    if (workspace) {
+      const workspaceRect = workspace.getBoundingClientRect();
+      resizeGrabOffsetRef.current = event.clientX - workspaceRect.left - currentSidebarWidth;
+    } else {
+      resizeGrabOffsetRef.current = RESIZE_HANDLE_WIDTH / 2;
+    }
+
+    setDragSidebarWidth(currentSidebarWidth);
+    setIsResizing(true);
+  };
 
   return (
     <div className={styles.shell}>
-      <header className={styles.titlebar} data-tauri-drag-region>
-        <div className={styles.titlebarLead} data-tauri-drag-region>
-          {isMac && <div className={styles.trafficLightsOffset} data-tauri-drag-region />}
+      <Titlebar isMac={isMac} isWindows={isWindows} />
+
+      <div
+        ref={workspaceRef}
+        className={`${styles.workspace} ${isResizing ? styles.workspaceResizing : ""}`}
+      >
+        <Sidebar
+          items={navItems}
+          activeTab={activeTab}
+          isCollapsed={collapsed}
+          motionState={sidebarMotionState}
+          width={currentSidebarWidth}
+          disableTransition={disableSidebarTransition}
+          onTabChange={setActiveTab}
+          onToggleCollapse={handleToggleCollapse}
+        />
+
+        <div
+          className={styles.resizeHandle}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Изменить ширину навигации"
+          onPointerDown={handleResizeStart}
+        >
+          <div className={styles.resizeHandleGrip} />
         </div>
-
-        {isWindows && (
-          <div className={styles.windowControls}>
-            <button className={styles.windowControl} type="button" aria-label="Свернуть" onClick={() => void appWindow.minimize()}>
-              <WindowMinimizeIcon />
-            </button>
-            <button className={styles.windowControl} type="button" aria-label="Развернуть" onClick={() => void appWindow.toggleMaximize()}>
-              <WindowMaximizeIcon />
-            </button>
-            <button
-              className={`${styles.windowControl} ${styles.windowControlClose}`}
-              type="button"
-              aria-label="Закрыть"
-              onClick={() => void appWindow.close()}
-            >
-              <WindowCloseIcon />
-            </button>
-          </div>
-        )}
-      </header>
-
-      <div className={styles.workspace}>
-        <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ""}`}>
-          <div className={`${styles.brand} ${!collapsed ? styles.brandExpanded : ""}`}>
-            <img src={logo} className={styles.brandLogo} alt="CodexSwitcher logo" />
-            {!collapsed && (
-              <div className={styles.brandText}>
-                <span className={styles.brandName}>CodexSwitcher</span>
-                <span className={styles.brandSub}>Account manager</span>
-              </div>
-            )}
-          </div>
-
-          <div className={styles.divider} />
-
-          <nav className={styles.nav}>
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                className={`${styles.navItem} ${activeTab === item.id ? styles.navItemActive : ""} ${collapsed ? styles.navItemCollapsed : ""}`}
-                type="button"
-                onClick={() => setActiveTab(item.id)}
-                aria-current={activeTab === item.id ? "page" : undefined}
-                title={collapsed ? item.label : undefined}
-              >
-                <span className={styles.navIcon}>{item.icon}</span>
-                {!collapsed && <span className={styles.navLabel}>{item.label}</span>}
-              </button>
-            ))}
-          </nav>
-
-          <button
-            className={`${styles.collapseBtn} ${collapsed ? styles.collapseBtnCollapsed : ""}`}
-            type="button"
-            onClick={() => setCollapsed((v) => !v)}
-            aria-label={collapsed ? "Развернуть" : "Свернуть"}
-            title={collapsed ? "Развернуть" : undefined}
-          >
-            {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-            {!collapsed && <span className={styles.collapseBtnLabel}>Свернуть</span>}
-          </button>
-        </aside>
 
         <main className={styles.content}>
           <div className={styles.contentInner}>
