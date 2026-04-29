@@ -3,10 +3,10 @@
   --accent-mid: rgba(167, 139, 250, 0.34);
   --accent-strong: rgba(167, 139, 250, 0.66);
   --accent-text: rgba(224, 220, 255, 0.96);
-  --motion-duration: 320ms;
-  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --fade-duration: 180ms;
-  --label-delay: 60ms;
+  --motion-duration: 420ms;
+  --motion-ease: ease-in-out;
+  --fade-duration: 240ms;
+  --label-delay: 80ms;
   --control-size: 40px;
   --icon-size: 18px;
   container-type: inline-size;
@@ -15,8 +15,6 @@
   flex-direction: column;
   gap: 24px;
 }
-
-/* ---------- Toolbar layout ---------- */
 
 .toolbar {
   position: relative;
@@ -46,8 +44,6 @@
 .rightGroup {
   flex: 0 0 auto;
 }
-
-/* ---------- Search field ---------- */
 
 .searchField {
   flex: 1 1 0;
@@ -135,8 +131,6 @@
   display: none;
 }
 
-/* ---------- Icons ---------- */
-
 .fieldIcon,
 .buttonIcon,
 .chevron {
@@ -160,8 +154,6 @@
   height: 100%;
 }
 
-/* ---------- Filter wrap ---------- */
-
 .filterWrap {
   position: relative;
   flex: 0 0 auto;
@@ -173,11 +165,10 @@
   width: var(--control-size);
 }
 
-/* ---------- Buttons (shared) ---------- */
-
 .controlButton {
   height: var(--control-size);
   min-width: var(--control-size);
+  max-width: 240px;
   display: grid;
   grid-template-columns: var(--icon-size) minmax(0, 1fr);
   align-items: center;
@@ -196,7 +187,7 @@
     grid-template-columns var(--motion-duration) var(--motion-ease),
     column-gap var(--motion-duration) var(--motion-ease),
     padding var(--motion-duration) var(--motion-ease),
-    width var(--motion-duration) var(--motion-ease),
+    max-width var(--motion-duration) var(--motion-ease),
     background 150ms,
     border-color 150ms,
     color 150ms,
@@ -219,22 +210,18 @@
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* Filter has icon + label + chevron; default (non-filter) has only icon + label */
 .controlButton.filterButton {
   grid-template-columns: var(--icon-size) minmax(0, 1fr) auto;
   width: 100%;
   justify-items: start;
 }
 
-/* Icon-only collapsed state — uniform for all buttons (filter, add, refresh) */
 .controlButton.controlButtonIconOnly {
-  width: var(--control-size);
+  max-width: var(--control-size);
   min-width: var(--control-size);
   grid-template-columns: var(--icon-size) 0fr;
   column-gap: 0;
-  padding: 0;
-  justify-content: center;
-  justify-items: center;
+  padding: 0 calc((var(--control-size) - var(--icon-size)) / 2);
 }
 
 .controlButton.filterButton.controlButtonIconOnly {
@@ -292,8 +279,6 @@
   opacity: 0;
   pointer-events: none;
 }
-
-/* ---------- Filter menu ---------- */
 
 .filterMenu {
   position: absolute;
@@ -362,8 +347,6 @@
   text-overflow: ellipsis;
 }
 
-/* ---------- Compact tiers (set CSS vars only; layout is data-driven) ---------- */
-
 .pageCompact1 {
   --control-size: 38px;
 }
@@ -378,13 +361,9 @@
   --icon-size: 17px;
 }
 
-/* When the search field is force-expanded at tier 3, give it room and
-   keep the right group tightly packed so it doesn't overflow. */
 .toolbarSearchExpanded .leftGroup {
   flex: 1 1 auto;
 }
-
-/* ---------- Empty state ---------- */
 
 .accountsSurface {
   flex: 1;

@@ -16,7 +16,6 @@ export function Titlebar({ isMac, isWindows }: TitlebarProps) {
     try {
       void action(getCurrentWindow());
     } catch {
-      // Window controls are only available inside the Tauri runtime.
     }
   };
 

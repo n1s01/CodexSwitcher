@@ -119,12 +119,10 @@ export function AccountsPage() {
     setIsSearchExpanded((current) => !current);
   };
 
-  // Visibility flags
   const showAddLabel = compactLevel === 0;
   const showRefreshLabel = compactLevel === 0;
   const showFilterLabel = compactLevel < 2;
   const isSearchCollapsed = compactLevel >= 3 && !isSearchExpanded;
-  // When search is force-expanded at tier 3, filter collapses to icon to make room.
   const forceFilterCollapsed = compactLevel >= 3 && isSearchExpanded;
 
   const compactClassName =
