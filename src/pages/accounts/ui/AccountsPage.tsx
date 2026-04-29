@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   AccountEmptyIcon,
   ChevronDownIcon,
@@ -35,17 +35,22 @@ export function AccountsPage() {
   const [isSubscriptionMenuOpen, setIsSubscriptionMenuOpen] = useState(false);
   const [compactLevel, setCompactLevel] = useState<0 | 1 | 2 | 3>(0);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const pageRef = useRef<HTMLElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const page = pageRef.current;
 
     if (!page) {
       return undefined;
     }
+
+    // Set correct compactLevel synchronously from current size before first paint,
+    // preventing CSS transition glitches on initial render.
+    setCompactLevel(resolveCompactLevel(page.getBoundingClientRect().width));
 
     const observer = new ResizeObserver(([entry]) => {
       setCompactLevel(resolveCompactLevel(entry.contentRect.width));
@@ -53,8 +58,16 @@ export function AccountsPage() {
 
     observer.observe(page);
 
+    // Re-enable CSS transitions after the first frame paints with correct layout.
+    let raf = requestAnimationFrame(() => {
+      raf = requestAnimationFrame(() => {
+        setIsReady(true);
+      });
+    });
+
     return () => {
       observer.disconnect();
+      cancelAnimationFrame(raf);
     };
   }, []);
 
@@ -138,6 +151,7 @@ export function AccountsPage() {
     <section
       ref={pageRef}
       className={`${styles.page} ${compactClassName}`}
+      data-ready={isReady ? "" : undefined}
       aria-label="Аккаунты"
     >
       <div
