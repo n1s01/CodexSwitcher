@@ -6,14 +6,32 @@ import {
 } from "../../shared/ui/icons/AppIcons";
 import styles from "./Titlebar.module.css";
 
-const appWindow = getCurrentWindow();
-
 type TitlebarProps = {
   isMac: boolean;
   isWindows: boolean;
 };
 
 export function Titlebar({ isMac, isWindows }: TitlebarProps) {
+  const runWindowAction = (action: (appWindow: ReturnType<typeof getCurrentWindow>) => unknown) => {
+    try {
+      void action(getCurrentWindow());
+    } catch {
+      // Window controls are only available inside the Tauri runtime.
+    }
+  };
+
+  const handleMinimize = () => {
+    runWindowAction((appWindow) => appWindow.minimize());
+  };
+
+  const handleToggleMaximize = () => {
+    runWindowAction((appWindow) => appWindow.toggleMaximize());
+  };
+
+  const handleClose = () => {
+    runWindowAction((appWindow) => appWindow.close());
+  };
+
   return (
     <header className={styles.titlebar} data-tauri-drag-region>
       <div className={styles.titlebarLead} data-tauri-drag-region>
@@ -26,7 +44,7 @@ export function Titlebar({ isMac, isWindows }: TitlebarProps) {
             className={styles.windowControl}
             type="button"
             aria-label="Свернуть"
-            onClick={() => void appWindow.minimize()}
+            onClick={handleMinimize}
           >
             <WindowMinimizeIcon />
           </button>
@@ -34,7 +52,7 @@ export function Titlebar({ isMac, isWindows }: TitlebarProps) {
             className={styles.windowControl}
             type="button"
             aria-label="Развернуть"
-            onClick={() => void appWindow.toggleMaximize()}
+            onClick={handleToggleMaximize}
           >
             <WindowMaximizeIcon />
           </button>
@@ -42,7 +60,7 @@ export function Titlebar({ isMac, isWindows }: TitlebarProps) {
             className={`${styles.windowControl} ${styles.windowControlClose}`}
             type="button"
             aria-label="Закрыть"
-            onClick={() => void appWindow.close()}
+            onClick={handleClose}
           >
             <WindowCloseIcon />
           </button>

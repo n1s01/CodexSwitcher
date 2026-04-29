@@ -1,0 +1,444 @@
+.page {
+  --accent-soft: rgba(167, 139, 250, 0.18);
+  --accent-mid: rgba(167, 139, 250, 0.34);
+  --accent-strong: rgba(167, 139, 250, 0.66);
+  --accent-text: rgba(224, 220, 255, 0.96);
+  --motion-duration: 320ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --fade-duration: 180ms;
+  --label-delay: 60ms;
+  --control-size: 40px;
+  --icon-size: 18px;
+  container-type: inline-size;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---------- Toolbar layout ---------- */
+
+.toolbar {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.leftGroup,
+.rightGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.leftGroup {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rightGroup {
+  flex: 0 0 auto;
+}
+
+/* ---------- Search field ---------- */
+
+.searchField {
+  flex: 1 1 0;
+  min-width: var(--control-size);
+  max-width: 420px;
+  height: var(--control-size);
+  display: grid;
+  grid-template-columns: var(--control-size) minmax(0, 1fr);
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.032);
+  color: rgba(255, 255, 255, 0.76);
+  overflow: hidden;
+  transition:
+    grid-template-columns var(--motion-duration) var(--motion-ease),
+    flex-basis var(--motion-duration) var(--motion-ease),
+    max-width var(--motion-duration) var(--motion-ease),
+    min-width var(--motion-duration) var(--motion-ease),
+    border-color 150ms,
+    background 150ms,
+    box-shadow 150ms;
+}
+
+.searchField:focus-within {
+  border-color: var(--accent-strong);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.searchFieldCollapsed {
+  flex: 0 0 var(--control-size);
+  max-width: var(--control-size);
+  grid-template-columns: var(--control-size) 0fr;
+}
+
+.searchIconButton {
+  width: var(--control-size);
+  height: var(--control-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: default;
+}
+
+.searchFieldCollapsed .searchIconButton {
+  cursor: pointer;
+}
+
+.searchInput {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: 0;
+  padding: 0 13px 0 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.875rem;
+  font-weight: 450;
+  letter-spacing: 0;
+  opacity: 1;
+  transition:
+    opacity var(--fade-duration) ease var(--label-delay),
+    padding var(--motion-duration) var(--motion-ease);
+}
+
+.searchFieldCollapsed .searchInput {
+  opacity: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+.searchInput::placeholder {
+  color: rgba(255, 255, 255, 0.32);
+}
+
+.searchInput::-webkit-search-decoration,
+.searchInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* ---------- Icons ---------- */
+
+.fieldIcon,
+.buttonIcon,
+.chevron {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 var(--icon-size);
+}
+
+.fieldIcon {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.fieldIcon :global(svg),
+.buttonIcon :global(svg),
+.chevron :global(svg),
+.emptyIcon :global(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Filter wrap ---------- */
+
+.filterWrap {
+  position: relative;
+  flex: 0 0 auto;
+  width: 154px;
+  transition: width var(--motion-duration) var(--motion-ease);
+}
+
+.filterWrapIconOnly {
+  width: var(--control-size);
+}
+
+/* ---------- Buttons (shared) ---------- */
+
+.controlButton {
+  height: var(--control-size);
+  min-width: var(--control-size);
+  display: grid;
+  grid-template-columns: var(--icon-size) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.032);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.835rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    grid-template-columns var(--motion-duration) var(--motion-ease),
+    column-gap var(--motion-duration) var(--motion-ease),
+    padding var(--motion-duration) var(--motion-ease),
+    width var(--motion-duration) var(--motion-ease),
+    background 150ms,
+    border-color 150ms,
+    color 150ms,
+    box-shadow 150ms;
+}
+
+.controlButton:hover {
+  border-color: rgba(255, 255, 255, 0.095);
+  background: rgba(255, 255, 255, 0.058);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.controlButton:active {
+  background: rgba(255, 255, 255, 0.048);
+}
+
+.controlButton:focus-visible {
+  outline: 0;
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Filter has icon + label + chevron; default (non-filter) has only icon + label */
+.controlButton.filterButton {
+  grid-template-columns: var(--icon-size) minmax(0, 1fr) auto;
+  width: 100%;
+  justify-items: start;
+}
+
+/* Icon-only collapsed state — uniform for all buttons (filter, add, refresh) */
+.controlButton.controlButtonIconOnly {
+  width: var(--control-size);
+  min-width: var(--control-size);
+  grid-template-columns: var(--icon-size) 0fr;
+  column-gap: 0;
+  padding: 0;
+  justify-content: center;
+  justify-items: center;
+}
+
+.controlButton.filterButton.controlButtonIconOnly {
+  grid-template-columns: var(--icon-size) 0fr 0fr;
+}
+
+.primaryButton {
+  border-color: var(--accent-mid);
+  background: rgba(167, 139, 250, 0.115);
+  color: var(--accent-text);
+}
+
+.primaryButton:hover {
+  border-color: rgba(167, 139, 250, 0.48);
+  background: rgba(167, 139, 250, 0.155);
+  color: #ffffff;
+}
+
+.buttonText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 1;
+  transform: translateX(0);
+  transform-origin: left center;
+  transition:
+    opacity var(--fade-duration) ease var(--label-delay),
+    transform var(--motion-duration) var(--motion-ease);
+}
+
+.controlButtonIconOnly .buttonText {
+  opacity: 0;
+  transform: translateX(-3px);
+  pointer-events: none;
+  transition:
+    opacity var(--fade-duration) ease,
+    transform var(--motion-duration) var(--motion-ease);
+}
+
+.chevron {
+  color: rgba(255, 255, 255, 0.42);
+  transition:
+    transform 160ms,
+    opacity var(--fade-duration) ease var(--label-delay),
+    color 150ms;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.controlButtonIconOnly .chevron {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- Filter menu ---------- */
+
+.filterMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  min-width: 138px;
+  z-index: 10;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 12px;
+  background: rgba(22, 22, 24, 0.97);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 14px 30px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(18px) saturate(1.14);
+  -webkit-backdrop-filter: blur(18px) saturate(1.14);
+}
+
+.filterOption {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.825rem;
+  font-weight: 500;
+  text-align: left;
+  transition:
+    background 140ms,
+    color 140ms;
+}
+
+.filterOption:hover,
+.filterOption:focus-visible {
+  outline: 0;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.filterOptionActive {
+  background: rgba(167, 139, 250, 0.14);
+  color: var(--accent-text);
+}
+
+.optionStatusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.filterOptionActive .optionStatusDot {
+  background: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.16);
+}
+
+.optionText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Compact tiers (set CSS vars only; layout is data-driven) ---------- */
+
+.pageCompact1 {
+  --control-size: 38px;
+}
+
+.pageCompact2 {
+  --control-size: 36px;
+  --icon-size: 17px;
+}
+
+.pageCompact3 {
+  --control-size: 36px;
+  --icon-size: 17px;
+}
+
+/* When the search field is force-expanded at tier 3, give it room and
+   keep the right group tightly packed so it doesn't overflow. */
+.toolbarSearchExpanded .leftGroup {
+  flex: 1 1 auto;
+}
+
+/* ---------- Empty state ---------- */
+
+.accountsSurface {
+  flex: 1;
+  min-height: 300px;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.018);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.028);
+  overflow: hidden;
+}
+
+.emptyState {
+  flex: 1;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 44px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(224, 220, 255, 0.88);
+}
+
+.emptyCopy {
+  max-width: 410px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.emptyTitle {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 1.08rem;
+  font-weight: 620;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.emptyText {
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
