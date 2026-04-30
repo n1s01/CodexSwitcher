@@ -13,6 +13,7 @@ import {
   importAccountFromJson,
   listAccounts,
   refreshAllAccounts,
+  startCodexAuthorization,
 } from "../model/account-api";
 import { formatPercent, upsertAccountSummary } from "../model/account-utils";
 import type { StoredAccountSummary } from "../model/account-types";
@@ -297,6 +298,12 @@ export function AccountsPage() {
 
   const handleImportAccount = async (rawJson: string) => {
     const account = await importAccountFromJson(rawJson);
+    setAccounts((current) => upsertAccountSummary(current, account));
+    setPageError(null);
+  };
+
+  const handleAuthorizeAccount = async () => {
+    const account = await startCodexAuthorization();
     setAccounts((current) => upsertAccountSummary(current, account));
     setPageError(null);
   };
@@ -668,6 +675,7 @@ export function AccountsPage() {
         <AddAccountModal
           onClose={() => setIsModalOpen(false)}
           onAdd={handleImportAccount}
+          onAuthorize={handleAuthorizeAccount}
         />
       )}
     </section>

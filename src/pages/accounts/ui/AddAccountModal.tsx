@@ -35,7 +35,10 @@ function validate(raw: string): ValidationState | null {
 interface AddAccountModalProps {
   onClose: () => void;
   onAdd: (rawJson: string) => Promise<void>;
+  onAuthorize: () => Promise<void>;
 }
+
+type AuthStage = "idle" | "opening" | "waiting" | "saving";
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -48,12 +51,15 @@ function getErrorMessage(error: unknown) {
 export function AddAccountModal({
   onClose,
   onAdd,
+  onAuthorize,
 }: AddAccountModalProps) {
   const [closing, setClosing] = useState(false);
   const [raw, setRaw] = useState("");
+  const [authStage, setAuthStage] = useState<AuthStage>("idle");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmittingImport, setIsSubmittingImport] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const authStageTimerRef = useRef<number | null>(null);
 
   const validation = validate(raw);
   const canAdd = Boolean(validation?.accessToken);
@@ -61,10 +67,10 @@ export function AddAccountModal({
   const hasContent = raw.trim().length > 0;
   const isValidJson = hasContent && validation !== null;
   const isInvalidJson = hasContent && validation === null;
-  const isBusy = isSubmittingImport;
+  const isBusy = authStage !== "idle" || isSubmittingImport;
 
-  const close = () => {
-    if (isBusy) {
+  const close = (force = false) => {
+    if (isBusy && !force) {
       return;
     }
     setClosing(true);
@@ -75,6 +81,14 @@ export function AddAccountModal({
     const timer = setTimeout(onClose, 180);
     return () => clearTimeout(timer);
   }, [closing, onClose]);
+
+  useEffect(() => {
+    return () => {
+      if (authStageTimerRef.current !== null) {
+        window.clearTimeout(authStageTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -106,6 +120,52 @@ export function AddAccountModal({
     }
   };
 
+  const handleAuthorize = async () => {
+    if (isBusy) {
+      return;
+    }
+
+    setSubmitError(null);
+    setAuthStage("opening");
+
+    authStageTimerRef.current = window.setTimeout(() => {
+      setAuthStage("waiting");
+      authStageTimerRef.current = null;
+    }, 480);
+
+    try {
+      await onAuthorize();
+
+      if (authStageTimerRef.current !== null) {
+        window.clearTimeout(authStageTimerRef.current);
+        authStageTimerRef.current = null;
+      }
+
+      setAuthStage("saving");
+
+      window.setTimeout(() => {
+        setClosing(true);
+      }, 180);
+    } catch (error) {
+      if (authStageTimerRef.current !== null) {
+        window.clearTimeout(authStageTimerRef.current);
+        authStageTimerRef.current = null;
+      }
+
+      setAuthStage("idle");
+      setSubmitError(getErrorMessage(error));
+    }
+  };
+
+  const authStatusText =
+    authStage === "opening"
+      ? "Открываем окно входа..."
+      : authStage === "waiting"
+        ? "Ждем подтверждения в окне авторизации..."
+        : authStage === "saving"
+          ? "Сохраняем аккаунт..."
+          : null;
+
   return createPortal(
     <div
       ref={backdropRef}
@@ -122,7 +182,7 @@ export function AddAccountModal({
           <button
             type="button"
             className={styles.closeButton}
-            onClick={close}
+            onClick={() => close()}
             aria-label="Закрыть"
             disabled={isBusy}
           >
@@ -202,20 +262,23 @@ export function AddAccountModal({
           <button
             type="button"
             className={styles.autoButton}
-            onClick={() => {}}
+            onClick={handleAuthorize}
+            disabled={isBusy}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="8" cy="8" r="6" />
               <path d="M8 5v3l2 2" />
             </svg>
-            Найти автоматически
+            Начать авторизацию
           </button>
           <span className={styles.autoDesc}>
-            Найдёт уже готовую авторизацию, если вы входили через&nbsp;Codex самостоятельно
+            Откроет окно входа OpenAI и сохранит аккаунт в локальный список этого приложения
           </span>
-          {submitError && (
-            <div className={`${styles.statusBox} ${styles.statusError}`}>
-              {submitError}
+          {(authStatusText || submitError) && (
+            <div
+              className={`${styles.statusBox} ${submitError ? styles.statusError : ""}`}
+            >
+              {submitError ?? authStatusText}
             </div>
           )}
         </div>
@@ -225,7 +288,7 @@ export function AddAccountModal({
           <button
             type="button"
             className={styles.cancelButton}
-            onClick={close}
+            onClick={() => close()}
             disabled={isBusy}
           >
             Отмена
