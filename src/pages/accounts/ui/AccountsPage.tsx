@@ -743,8 +743,6 @@ export function AccountsPage() {
 
       {pendingSwitchId &&
         (() => {
-          const account = accounts.find((a) => a.id === pendingSwitchId);
-          const name = account ? getDisplayName(account) : "";
           return (
             <ConfirmModal
               title="Переключить аккаунт?"

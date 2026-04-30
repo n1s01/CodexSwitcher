@@ -74,17 +74,6 @@ export function upsertAccountSummary(
   return draft.sort((left, right) => left.email.localeCompare(right.email, "ru"));
 }
 
-export function formatTimestamp(timestamp: number | null | undefined): string {
-  if (!timestamp) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat("ru-RU", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(timestamp * 1000));
-}
-
 export function formatDateOnly(timestamp: number | null | undefined): string {
   if (!timestamp) {
     return "—";
@@ -105,16 +94,4 @@ export function formatPercent(value: number | null | undefined): string {
   }
 
   return `${Math.round(value)}%`;
-}
-
-export function shortenAccountId(value: string | null | undefined): string {
-  if (!value) {
-    return "—";
-  }
-
-  if (value.length <= 16) {
-    return value;
-  }
-
-  return `${value.slice(0, 8)}...${value.slice(-6)}`;
 }
