@@ -19,6 +19,12 @@ html, body, #root {
   margin: 0;
   height: 100%;
   background: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+img, svg, canvas, video {
+  -webkit-user-drag: none;
 }
 
 body {
