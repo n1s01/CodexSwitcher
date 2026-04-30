@@ -2,10 +2,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   AccountEmptyIcon,
   ChevronDownIcon,
+  CopyIcon,
   FilterIcon,
   PlusIcon,
   RefreshIcon,
   SearchIcon,
+  SwitchIcon,
+  TrashIcon,
 } from "../../../shared/ui/icons/AppIcons";
 import {
   deleteAccount,
@@ -15,9 +18,14 @@ import {
   refreshAllAccounts,
   startCodexAuthorization,
 } from "../model/account-api";
-import { formatPercent, upsertAccountSummary } from "../model/account-utils";
+import {
+  formatDateOnly,
+  formatPercent,
+  upsertAccountSummary,
+} from "../model/account-utils";
 import type { StoredAccountSummary } from "../model/account-types";
 import { AddAccountModal } from "./AddAccountModal";
+import { ConfirmModal } from "./ConfirmModal";
 import styles from "./AccountsPage.module.css";
 
 const subscriptionOptions = ["Все", "Free", "Go", "Plus", "Pro"] as const;
@@ -181,6 +189,8 @@ export function AccountsPage() {
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(
     null,
   );
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [pendingSwitchId, setPendingSwitchId] = useState<string | null>(null);
   const pageRef = useRef<HTMLElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -595,7 +605,10 @@ export function AccountsPage() {
                           <span
                             className={`${styles.planBadge} ${getPlanBadgeTone(account.planType)}`}
                           >
-                            {account.planType ?? "Unknown"}
+                            {account.planType
+                              ? account.planType.charAt(0).toUpperCase() +
+                                account.planType.slice(1).toLowerCase()
+                              : "Unknown"}
                           </span>
                         </div>
 
@@ -624,6 +637,28 @@ export function AccountsPage() {
                         <div className={styles.usageHint}>{usageHint}</div>
                       )}
                     </div>
+
+                    <div className={styles.cardMeta}>
+                      <div className={styles.cardMetaItem}>
+                        <span className={styles.cardMetaLabel}>Добавлен</span>
+                        <span className={styles.cardMetaValue}>
+                          {formatDateOnly(account.createdAt)}
+                        </span>
+                      </div>
+                      <div
+                        className={styles.cardMetaDivider}
+                        aria-hidden="true"
+                      />
+                      <div className={styles.cardMetaItem}>
+                        <span className={styles.cardMetaLabel}>
+                          Сброс лимита
+                        </span>
+                        <span className={styles.cardMetaValue}>
+                          {formatDateOnly(account.usage?.resetAt)}
+                        </span>
+                      </div>
+                    </div>
+
                     <div className={styles.cardActions}>
                       <button
                         type="button"
@@ -633,34 +668,45 @@ export function AccountsPage() {
                             : ""
                         }`}
                         onClick={() => handleCopyAccount(account.id)}
-                        title="Скопировать JSON"
-                        aria-label="Скопировать JSON"
+                        title={
+                          copiedAccountId === account.id
+                            ? "Скопировано"
+                            : "Скопировать JSON"
+                        }
+                        aria-label={
+                          copiedAccountId === account.id
+                            ? "Скопировано"
+                            : "Скопировать JSON"
+                        }
                       >
-                        {copiedAccountId === account.id
-                          ? "Скопировано"
-                          : "Скопировать"}
+                        <span className={styles.actionIcon}>
+                          <CopyIcon />
+                        </span>
                       </button>
 
                       <button
                         type="button"
                         className={styles.actionButton}
-                        disabled
-                        title="Функция переключения будет добавлена позже"
+                        onClick={() => setPendingSwitchId(account.id)}
+                        title="Переключиться на этот аккаунт"
+                        aria-label="Переключиться"
                       >
-                        Переключиться
+                        <span className={styles.actionIcon}>
+                          <SwitchIcon />
+                        </span>
                       </button>
 
                       <button
                         type="button"
                         className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                        onClick={() => handleDeleteAccount(account.id)}
+                        onClick={() => setPendingDeleteId(account.id)}
                         disabled={deletingAccountId === account.id}
                         title="Удалить аккаунт"
                         aria-label="Удалить аккаунт"
                       >
-                        {deletingAccountId === account.id
-                          ? "Удаляем..."
-                          : "Удалить"}
+                        <span className={styles.actionIcon}>
+                          <TrashIcon />
+                        </span>
                       </button>
                     </div>
                   </article>
@@ -678,6 +724,38 @@ export function AccountsPage() {
           onAuthorize={handleAuthorizeAccount}
         />
       )}
+
+      {pendingDeleteId &&
+        (() => {
+          const account = accounts.find((a) => a.id === pendingDeleteId);
+          const name = account ? getDisplayName(account) : "";
+          return (
+            <ConfirmModal
+              title="Удалить аккаунт?"
+              description={`Аккаунт «${name}» будет удалён из списка аккаунтов.`}
+              confirmLabel="Удалить"
+              variant="danger"
+              onConfirm={() => handleDeleteAccount(pendingDeleteId)}
+              onClose={() => setPendingDeleteId(null)}
+            />
+          );
+        })()}
+
+      {pendingSwitchId &&
+        (() => {
+          const account = accounts.find((a) => a.id === pendingSwitchId);
+          const name = account ? getDisplayName(account) : "";
+          return (
+            <ConfirmModal
+              title="Переключить аккаунт?"
+              description={`Если Codex запущен, он будет принудительно завершён для перезапуска с новой сессией.`}
+              confirmLabel="Переключиться"
+              variant="default"
+              onConfirm={() => Promise.resolve()}
+              onClose={() => setPendingSwitchId(null)}
+            />
+          );
+        })()}
     </section>
   );
 }
