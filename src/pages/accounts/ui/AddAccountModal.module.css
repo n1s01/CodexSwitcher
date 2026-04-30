@@ -90,6 +90,11 @@
     transition: background 140ms, color 140ms;
 }
 
+.closeButton:disabled {
+    opacity: 0.28;
+    cursor: default;
+}
+
 .closeButton:hover {
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.72);
@@ -166,6 +171,11 @@
 
 .textarea::placeholder {
     color: rgba(255, 255, 255, 0.22);
+}
+
+.textarea:disabled {
+    opacity: 0.5;
+    cursor: default;
 }
 
 .validationList {
@@ -308,11 +318,34 @@
     box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+.autoButton:disabled {
+    opacity: 0.48;
+    cursor: default;
+}
+
 .autoDesc {
     font-size: 0.775rem;
     color: rgba(255, 255, 255, 0.3);
     text-align: center;
     line-height: 1.45;
+}
+
+.statusBox {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(167, 139, 250, 0.18);
+    border-radius: 10px;
+    background: rgba(167, 139, 250, 0.08);
+    color: rgba(232, 227, 255, 0.92);
+    font-size: 0.79rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.statusError {
+    border-color: rgba(248, 113, 113, 0.28);
+    background: rgba(248, 113, 113, 0.08);
+    color: rgba(255, 212, 212, 0.92);
 }
 
 .actions {
@@ -344,6 +377,11 @@
     outline: 0;
     border-color: var(--accent-strong);
     box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.cancelButton:disabled {
+    opacity: 0.38;
+    cursor: default;
 }
 
 .addButton {

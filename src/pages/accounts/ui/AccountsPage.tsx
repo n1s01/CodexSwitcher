@@ -7,6 +7,15 @@ import {
   RefreshIcon,
   SearchIcon,
 } from "../../../shared/ui/icons/AppIcons";
+import {
+  deleteAccount,
+  exportAccountJson,
+  importAccountFromJson,
+  listAccounts,
+  refreshAllAccounts,
+} from "../model/account-api";
+import { formatPercent, upsertAccountSummary } from "../model/account-utils";
+import type { StoredAccountSummary } from "../model/account-types";
 import { AddAccountModal } from "./AddAccountModal";
 import styles from "./AccountsPage.module.css";
 
@@ -19,6 +28,8 @@ const COMPACT_BREAKPOINTS = [
   { max: 560, level: 2 },
   { max: 440, level: 3 },
 ] as const;
+const DISPLAY_NAME_MAX_LENGTH = 28;
+const COPY_FEEDBACK_TIMEOUT_MS = 1800;
 
 function resolveCompactLevel(width: number): 0 | 1 | 2 | 3 {
   for (const breakpoint of COMPACT_BREAKPOINTS) {
@@ -27,6 +38,129 @@ function resolveCompactLevel(width: number): 0 | 1 | 2 | 3 {
     }
   }
   return 0;
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "Не удалось выполнить операцию.";
+}
+
+function matchesSubscription(
+  account: StoredAccountSummary,
+  filter: SubscriptionFilter,
+) {
+  if (filter === "Все") {
+    return true;
+  }
+
+  return account.planType?.toLowerCase() === filter.toLowerCase();
+}
+
+function matchesSearch(account: StoredAccountSummary, query: string) {
+  if (!query) {
+    return true;
+  }
+
+  const normalizedQuery = query.toLowerCase();
+  return (
+    account.name?.toLowerCase().includes(normalizedQuery) === true ||
+    account.email.toLowerCase().includes(normalizedQuery) ||
+    account.accountId?.toLowerCase().includes(normalizedQuery) === true
+  );
+}
+
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
+function getDisplayName(account: StoredAccountSummary) {
+  const fallbackName = account.email.split("@")[0] ?? account.email;
+  const source = account.name?.trim() || fallbackName.trim() || account.email;
+  return truncateText(source, DISPLAY_NAME_MAX_LENGTH);
+}
+
+function getPlanBadgeTone(planType: string | null) {
+  switch (planType?.toLowerCase()) {
+    case "free":
+      return styles.planBadgeFree;
+    case "go":
+      return styles.planBadgeGo;
+    case "plus":
+      return styles.planBadgePlus;
+    case "pro":
+      return styles.planBadgePro;
+    default:
+      return styles.planBadgeDefault;
+  }
+}
+
+function getRemainingUsagePercent(account: StoredAccountSummary) {
+  if (typeof account.usage?.usedPercent !== "number") {
+    return null;
+  }
+
+  return Math.max(0, Math.min(100, 100 - account.usage.usedPercent));
+}
+
+async function copyTextToClipboard(text: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Fall back to a hidden textarea if clipboard API is unavailable.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.append(textarea);
+  textarea.select();
+
+  const success = document.execCommand("copy");
+  textarea.remove();
+
+  if (!success) {
+    throw new Error("Не удалось скопировать JSON аккаунта.");
+  }
+}
+
+function getAvatarText(account: StoredAccountSummary) {
+  const source = account.name?.trim() || account.email.trim();
+
+  if (!source) {
+    return "??";
+  }
+
+  const words = source
+    .replace(/[@._-]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) {
+    return source.slice(0, 2).toUpperCase();
+  }
+
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${words[0][0] ?? ""}${words[1][0] ?? ""}`.toUpperCase();
 }
 
 export function AccountsPage() {
@@ -38,10 +172,19 @@ export function AccountsPage() {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [accounts, setAccounts] = useState<StoredAccountSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [copiedAccountId, setCopiedAccountId] = useState<string | null>(null);
+  const [deletingAccountId, setDeletingAccountId] = useState<string | null>(
+    null,
+  );
   const pageRef = useRef<HTMLElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const copyFeedbackTimeoutRef = useRef<number | null>(null);
 
   useLayoutEffect(() => {
     const page = pageRef.current;
@@ -68,6 +211,19 @@ export function AccountsPage() {
       observer.disconnect();
       cancelAnimationFrame(raf);
     };
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const loadedAccounts = await listAccounts();
+        setAccounts(loadedAccounts);
+      } catch (error) {
+        setPageError(getErrorMessage(error));
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -115,6 +271,14 @@ export function AccountsPage() {
     };
   }, [isSearchExpanded, isSubscriptionMenuOpen]);
 
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(copyFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleSelectSubscription = (option: SubscriptionFilter) => {
     setSubscriptionFilter(option);
     setIsSubscriptionMenuOpen(false);
@@ -131,6 +295,70 @@ export function AccountsPage() {
     setIsSearchExpanded((current) => !current);
   };
 
+  const handleImportAccount = async (rawJson: string) => {
+    const account = await importAccountFromJson(rawJson);
+    setAccounts((current) => upsertAccountSummary(current, account));
+    setPageError(null);
+  };
+
+  const handleRefreshAccounts = async () => {
+    setIsRefreshing(true);
+    setPageError(null);
+
+    try {
+      const nextAccounts = await refreshAllAccounts();
+      setAccounts(nextAccounts);
+    } catch (error) {
+      setPageError(getErrorMessage(error));
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleCopyAccount = async (accountId: string) => {
+    try {
+      const rawJson = await exportAccountJson(accountId);
+      await copyTextToClipboard(rawJson);
+      setPageError(null);
+      setCopiedAccountId(accountId);
+
+      if (copyFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(copyFeedbackTimeoutRef.current);
+      }
+
+      copyFeedbackTimeoutRef.current = window.setTimeout(() => {
+        setCopiedAccountId((current) =>
+          current === accountId ? null : current,
+        );
+      }, COPY_FEEDBACK_TIMEOUT_MS);
+    } catch (error) {
+      setPageError(getErrorMessage(error));
+    }
+  };
+
+  const handleDeleteAccount = async (accountId: string) => {
+    setDeletingAccountId(accountId);
+    setPageError(null);
+
+    try {
+      const nextAccounts = await deleteAccount(accountId);
+      setAccounts(nextAccounts);
+      setCopiedAccountId((current) => (current === accountId ? null : current));
+    } catch (error) {
+      setPageError(getErrorMessage(error));
+    } finally {
+      setDeletingAccountId((current) =>
+        current === accountId ? null : current,
+      );
+    }
+  };
+
+  const filteredAccounts = accounts.filter(
+    (account) =>
+      matchesSubscription(account, subscriptionFilter) &&
+      matchesSearch(account, searchQuery.trim()),
+  );
+
   const showAddLabel = compactLevel === 0;
   const showRefreshLabel = compactLevel === 0;
   const showFilterLabel = compactLevel < 2;
@@ -145,6 +373,9 @@ export function AccountsPage() {
         : compactLevel === 2
           ? styles.pageCompact2
           : styles.pageCompact3;
+
+  const hasAccounts = accounts.length > 0;
+  const hasVisibleAccounts = filteredAccounts.length > 0;
 
   return (
     <section
@@ -179,8 +410,8 @@ export function AccountsPage() {
               type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Поиск по почте"
-              aria-label="Поиск по почте"
+              placeholder="Поиск по почте или account id"
+              aria-label="Поиск по почте или account id"
               aria-hidden={isSearchCollapsed}
               tabIndex={isSearchCollapsed ? -1 : 0}
             />
@@ -273,37 +504,170 @@ export function AccountsPage() {
             type="button"
             aria-label="Обновить информацию"
             title="Обновить информацию"
+            onClick={handleRefreshAccounts}
+            disabled={isRefreshing || isLoading || !hasAccounts}
           >
             <span className={styles.buttonIcon} aria-hidden="true">
               <RefreshIcon />
             </span>
-            <span className={styles.buttonText}>Обновить информацию</span>
+            <span className={styles.buttonText}>
+              {isRefreshing ? "Обновляем..." : "Обновить информацию"}
+            </span>
           </button>
         </div>
       </div>
 
       <div className={styles.accountsSurface}>
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon} aria-hidden="true">
-            <AccountEmptyIcon />
+        {isLoading ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyCopy}>
+              <h2 className={styles.emptyTitle}>Загружаем аккаунты</h2>
+              <p className={styles.emptyText}>
+                Читаем локальное хранилище и готовим список аккаунтов.
+              </p>
+            </div>
           </div>
-          <div className={styles.emptyCopy}>
-            <h2 className={styles.emptyTitle}>Аккаунтов пока нет</h2>
-            <p className={styles.emptyText}>
-              Добавленные аккаунты появятся здесь вместе с почтой, подпиской и
-              актуальной информацией.
-            </p>
+        ) : !hasVisibleAccounts ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon} aria-hidden="true">
+              <AccountEmptyIcon />
+            </div>
+            <div className={styles.emptyCopy}>
+              <h2 className={styles.emptyTitle}>
+                {hasAccounts ? "Ничего не найдено" : "Аккаунтов пока нет"}
+              </h2>
+              <p className={styles.emptyText}>
+                {hasAccounts
+                  ? "Попробуйте изменить поиск или фильтр по подписке."
+                  : "Добавленные аккаунты появятся здесь вместе с почтой, подпиской и актуальной информацией."}
+              </p>
+              {pageError && <p className={styles.errorText}>{pageError}</p>}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className={styles.accountsContent}>
+            {pageError && (
+              <div className={styles.surfaceAlert}>{pageError}</div>
+            )}
+
+            <div className={styles.accountsHeader}>
+              <div className={styles.accountsHeaderTitle}>
+                Сохраненные аккаунты
+              </div>
+              <div className={styles.accountsHeaderMeta}>
+                {filteredAccounts.length} из {accounts.length}
+              </div>
+            </div>
+
+            <div className={styles.accountGrid}>
+              {filteredAccounts.map((account) => {
+                const displayName = getDisplayName(account);
+                const remainingUsagePercent = getRemainingUsagePercent(account);
+                const usageHint = account.syncError
+                  ? account.syncError
+                  : !account.usage
+                    ? "Нет данных по лимиту."
+                    : null;
+
+                return (
+                  <article key={account.id} className={styles.accountCard}>
+                    <div className={styles.cardHeader}>
+                      <div className={styles.avatarBadge} aria-hidden="true">
+                        {getAvatarText(account)}
+                      </div>
+
+                      <div className={styles.cardTitleWrap}>
+                        <div className={styles.cardTitleRow}>
+                          <div
+                            className={styles.cardTitle}
+                            title={account.name || account.email}
+                          >
+                            {displayName}
+                          </div>
+
+                          <span
+                            className={`${styles.planBadge} ${getPlanBadgeTone(account.planType)}`}
+                          >
+                            {account.planType ?? "Unknown"}
+                          </span>
+                        </div>
+
+                        <div className={styles.cardEmail} title={account.email}>
+                          {account.email}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={styles.usageBlock}>
+                      <span className={styles.usageLabel}>Использование</span>
+
+                      <div className={styles.usageBarRow}>
+                        <div className={styles.usageBar} aria-hidden="true">
+                          <div
+                            className={styles.usageBarFill}
+                            style={{ width: `${remainingUsagePercent ?? 0}%` }}
+                          />
+                        </div>
+                        <span className={styles.usageValue}>
+                          {formatPercent(remainingUsagePercent)}
+                        </span>
+                      </div>
+
+                      {usageHint && (
+                        <div className={styles.usageHint}>{usageHint}</div>
+                      )}
+                    </div>
+                    <div className={styles.cardActions}>
+                      <button
+                        type="button"
+                        className={`${styles.actionButton} ${
+                          copiedAccountId === account.id
+                            ? styles.actionButtonActive
+                            : ""
+                        }`}
+                        onClick={() => handleCopyAccount(account.id)}
+                        title="Скопировать JSON"
+                        aria-label="Скопировать JSON"
+                      >
+                        {copiedAccountId === account.id
+                          ? "Скопировано"
+                          : "Скопировать"}
+                      </button>
+
+                      <button
+                        type="button"
+                        className={styles.actionButton}
+                        disabled
+                        title="Функция переключения будет добавлена позже"
+                      >
+                        Переключиться
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+                        onClick={() => handleDeleteAccount(account.id)}
+                        disabled={deletingAccountId === account.id}
+                        title="Удалить аккаунт"
+                        aria-label="Удалить аккаунт"
+                      >
+                        {deletingAccountId === account.id
+                          ? "Удаляем..."
+                          : "Удалить"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {isModalOpen && (
         <AddAccountModal
           onClose={() => setIsModalOpen(false)}
-          onAdd={(account) => {
-            console.log("account added", account);
-            setIsModalOpen(false);
-          }}
+          onAdd={handleImportAccount}
         />
       )}
     </section>

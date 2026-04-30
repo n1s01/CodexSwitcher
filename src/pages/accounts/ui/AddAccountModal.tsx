@@ -1,108 +1,72 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { parseAccountImport } from "../model/account-utils";
 import styles from "./AddAccountModal.module.css";
 
-interface ParsedAccount {
-  access_token: string;
-  refresh_token: string | null;
-  account_id: string | null;
-  email: string | null;
-  plan_type: string | null;
-  exp: string | null;
-}
-
 interface ValidationState {
-  access_token: boolean;
-  refresh_token: boolean;
-  account_id: boolean;
+  accessToken: boolean;
+  refreshToken: boolean;
+  accountId: boolean;
   email: string | null;
-  plan_type: string | null;
+  planType: string | null;
   exp: string | null;
 }
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const payload = token.split(".")[1];
-    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
-    return JSON.parse(decoded);
-  } catch {
+function validate(raw: string): ValidationState | null {
+  const parsed = parseAccountImport(raw);
+
+  if (!parsed) {
     return null;
   }
-}
 
-function parseInput(raw: string): ParsedAccount | null {
-  if (!raw.trim()) return null;
-  try {
-    const obj = JSON.parse(raw) as Record<string, unknown>;
-
-    // Support both flat {"access_token": ...} and nested {"tokens": {"access_token": ...}}
-    const tokens = (obj.tokens as Record<string, unknown> | undefined) ?? obj;
-    const accessToken =
-      (tokens.access_token as string | undefined) ??
-      (obj.access_token as string | undefined) ??
-      null;
-    const refreshToken =
-      (tokens.refresh_token as string | undefined) ??
-      (obj.refresh_token as string | undefined) ??
-      null;
-    const accountId =
-      (tokens.account_id as string | undefined) ??
-      (obj.account_id as string | undefined) ??
-      null;
-
-    if (!accessToken) return null;
-
-    const jwt = decodeJwtPayload(accessToken);
-    const auth = jwt?.["https://api.openai.com/auth"] as
-      | Record<string, unknown>
-      | undefined;
-    const profile = jwt?.["https://api.openai.com/profile"] as
-      | Record<string, unknown>
-      | undefined;
-    const email = (profile?.email as string) ?? null;
-    const planType = (auth?.chatgpt_plan_type as string) ?? null;
-    const exp =
-      typeof jwt?.exp === "number"
-        ? new Date(jwt.exp * 1000).toLocaleString("ru-RU")
-        : null;
-
-    return { access_token: accessToken, refresh_token: refreshToken, account_id: accountId, email, plan_type: planType, exp };
-  } catch {
-    return null;
-  }
-}
-
-function validate(parsed: ParsedAccount | null): ValidationState | null {
-  if (!parsed) return null;
   return {
-    access_token: Boolean(parsed.access_token),
-    refresh_token: Boolean(parsed.refresh_token),
-    account_id: Boolean(parsed.account_id),
+    accessToken: Boolean(parsed.accessToken),
+    refreshToken: Boolean(parsed.refreshToken),
+    accountId: Boolean(parsed.accountId),
     email: parsed.email,
-    plan_type: parsed.plan_type,
-    exp: parsed.exp,
+    planType: parsed.planType,
+    exp:
+      typeof parsed.exp === "number"
+        ? new Date(parsed.exp * 1000).toLocaleString("ru-RU")
+        : null,
   };
 }
 
 interface AddAccountModalProps {
   onClose: () => void;
-  onAdd: (account: ParsedAccount) => void;
+  onAdd: (rawJson: string) => Promise<void>;
 }
 
-export function AddAccountModal({ onClose, onAdd }: AddAccountModalProps) {
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Что-то пошло не так. Попробуйте еще раз.";
+}
+
+export function AddAccountModal({
+  onClose,
+  onAdd,
+}: AddAccountModalProps) {
   const [closing, setClosing] = useState(false);
   const [raw, setRaw] = useState("");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmittingImport, setIsSubmittingImport] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
 
-  const parsed = parseInput(raw);
-  const validation = validate(parsed);
-  const canAdd = Boolean(validation?.access_token);
+  const validation = validate(raw);
+  const canAdd = Boolean(validation?.accessToken);
 
   const hasContent = raw.trim().length > 0;
-  const isValidJson = hasContent && parsed !== null;
-  const isInvalidJson = hasContent && parsed === null;
+  const isValidJson = hasContent && validation !== null;
+  const isInvalidJson = hasContent && validation === null;
+  const isBusy = isSubmittingImport;
 
   const close = () => {
+    if (isBusy) {
+      return;
+    }
     setClosing(true);
   };
 
@@ -124,8 +88,22 @@ export function AddAccountModal({ onClose, onAdd }: AddAccountModalProps) {
     if (e.target === backdropRef.current) close();
   };
 
-  const handleAdd = () => {
-    if (parsed) onAdd(parsed);
+  const handleAdd = async () => {
+    if (!canAdd || isBusy) {
+      return;
+    }
+
+    setSubmitError(null);
+    setIsSubmittingImport(true);
+
+    try {
+      await onAdd(raw);
+      setClosing(true);
+    } catch (error) {
+      setSubmitError(getErrorMessage(error));
+    } finally {
+      setIsSubmittingImport(false);
+    }
   };
 
   return createPortal(
@@ -146,6 +124,7 @@ export function AddAccountModal({ onClose, onAdd }: AddAccountModalProps) {
             className={styles.closeButton}
             onClick={close}
             aria-label="Закрыть"
+            disabled={isBusy}
           >
             <svg className={styles.closeIcon} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
               <path d="M2 2l10 10M12 2L2 12" />
@@ -168,35 +147,36 @@ export function AddAccountModal({ onClose, onAdd }: AddAccountModalProps) {
               placeholder={'Вставьте JSON с токенами\n{"tokens": {"access_token": "...", ...}}'}
               spellCheck={false}
               autoFocus
+              disabled={isBusy}
             />
           </div>
 
           {/* Validation feedback */}
           {validation && (
             <div className={styles.validationList}>
-              <div className={`${styles.validationRow} ${validation.access_token ? styles.ok : styles.missing}`}>
+              <div className={`${styles.validationRow} ${validation.accessToken ? styles.ok : styles.missing}`}>
                 <span className={styles.validationDot} />
                 access_token
               </div>
-              <div className={`${styles.validationRow} ${validation.refresh_token ? styles.ok : styles.missing}`}>
+              <div className={`${styles.validationRow} ${validation.refreshToken ? styles.ok : styles.missing}`}>
                 <span className={styles.validationDot} />
                 refresh_token
               </div>
-              <div className={`${styles.validationRow} ${validation.account_id ? styles.ok : styles.missing}`}>
+              <div className={`${styles.validationRow} ${validation.accountId ? styles.ok : styles.missing}`}>
                 <span className={styles.validationDot} />
                 account_id
               </div>
 
-              {(validation.email || validation.plan_type || validation.exp) && (
+              {(validation.email || validation.planType || validation.exp) && (
                 <div className={styles.validationExtra}>
                   {validation.email && (
                     <span className={`${styles.validationChip} ${styles.visible}`}>
                       {validation.email}
                     </span>
                   )}
-                  {validation.plan_type && (
+                  {validation.planType && (
                     <span className={`${styles.validationChip} ${styles.visible}`}>
-                      {validation.plan_type}
+                      {validation.planType}
                     </span>
                   )}
                   {validation.exp && (
@@ -219,7 +199,11 @@ export function AddAccountModal({ onClose, onAdd }: AddAccountModalProps) {
 
         {/* Auto section */}
         <div className={styles.footer}>
-          <button type="button" className={styles.autoButton} onClick={() => {}}>
+          <button
+            type="button"
+            className={styles.autoButton}
+            onClick={() => {}}
+          >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="8" cy="8" r="6" />
               <path d="M8 5v3l2 2" />
@@ -229,20 +213,30 @@ export function AddAccountModal({ onClose, onAdd }: AddAccountModalProps) {
           <span className={styles.autoDesc}>
             Найдёт уже готовую авторизацию, если вы входили через&nbsp;Codex самостоятельно
           </span>
+          {submitError && (
+            <div className={`${styles.statusBox} ${styles.statusError}`}>
+              {submitError}
+            </div>
+          )}
         </div>
 
         {/* Actions */}
         <div className={styles.actions}>
-          <button type="button" className={styles.cancelButton} onClick={close}>
+          <button
+            type="button"
+            className={styles.cancelButton}
+            onClick={close}
+            disabled={isBusy}
+          >
             Отмена
           </button>
           <button
             type="button"
             className={styles.addButton}
-            disabled={!canAdd}
+            disabled={!canAdd || isBusy}
             onClick={handleAdd}
           >
-            Добавить
+            {isSubmittingImport ? "Сохраняем..." : "Добавить"}
           </button>
         </div>
       </div>
