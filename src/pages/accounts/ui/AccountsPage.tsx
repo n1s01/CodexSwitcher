@@ -7,6 +7,7 @@ import {
   RefreshIcon,
   SearchIcon,
 } from "../../../shared/ui/icons/AppIcons";
+import { AddAccountModal } from "./AddAccountModal";
 import styles from "./AccountsPage.module.css";
 
 const subscriptionOptions = ["Все", "Free", "Go", "Plus", "Pro"] as const;
@@ -36,6 +37,7 @@ export function AccountsPage() {
   const [compactLevel, setCompactLevel] = useState<0 | 1 | 2 | 3>(0);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const pageRef = useRef<HTMLElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -48,8 +50,6 @@ export function AccountsPage() {
       return undefined;
     }
 
-    // Set correct compactLevel synchronously from current size before first paint,
-    // preventing CSS transition glitches on initial render.
     setCompactLevel(resolveCompactLevel(page.getBoundingClientRect().width));
 
     const observer = new ResizeObserver(([entry]) => {
@@ -58,7 +58,6 @@ export function AccountsPage() {
 
     observer.observe(page);
 
-    // Re-enable CSS transitions after the first frame paints with correct layout.
     let raf = requestAnimationFrame(() => {
       raf = requestAnimationFrame(() => {
         setIsReady(true);
@@ -259,6 +258,7 @@ export function AccountsPage() {
             type="button"
             aria-label="Добавить аккаунт"
             title="Добавить аккаунт"
+            onClick={() => setIsModalOpen(true)}
           >
             <span className={styles.buttonIcon} aria-hidden="true">
               <PlusIcon />
@@ -296,6 +296,16 @@ export function AccountsPage() {
           </div>
         </div>
       </div>
+
+      {isModalOpen && (
+        <AddAccountModal
+          onClose={() => setIsModalOpen(false)}
+          onAdd={(account) => {
+            console.log("account added", account);
+            setIsModalOpen(false);
+          }}
+        />
+      )}
     </section>
   );
 }
