@@ -25,6 +25,10 @@ serde_json = "1"
 wreq = { version = "6.0.0-rc", features = ["json"] }
 wreq-util = "3.0.0-rc"
 tokio = { version = "1", features = ["full"] }
+base64 = "0.22"
+rand = "0.8"
+sha2 = "0.10"
+url = "2"
 
 window-shadows-v2 = "0.1"
 window-vibrancy = "0.7"

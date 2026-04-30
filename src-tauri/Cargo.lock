@@ -6,12 +6,16 @@ version = 4
 name = "CodexSwitcher"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
+ "rand 0.8.6",
  "serde",
  "serde_json",
+ "sha2",
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
  "tokio",
+ "url",
  "window-shadows-v2",
  "window-vibrancy 0.7.1",
  "wreq",
