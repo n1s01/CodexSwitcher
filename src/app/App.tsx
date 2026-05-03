@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import styles from "./App.module.css";
 import "./styles.css";
-import { navItems } from "../features/navigation/model/nav-items";
+import { getNavItems } from "../features/navigation/model/nav-items";
 import type { TabId } from "../features/navigation/model/types";
 import { AccountsPage } from "../pages/accounts/ui/AccountsPage";
 import { HomePage } from "../pages/home/ui/HomePage";
 import { SettingsPage } from "../pages/settings/ui/SettingsPage";
+import { useI18n } from "../shared/i18n/I18nProvider";
 import { Sidebar } from "../widgets/sidebar/Sidebar";
 import { Titlebar } from "../widgets/titlebar/Titlebar";
 
@@ -40,6 +41,7 @@ function detectOs() {
 }
 
 export function App() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
@@ -51,6 +53,7 @@ export function App() {
   const resizeGrabOffsetRef = useRef(RESIZE_HANDLE_WIDTH / 2);
   const sidebarMotionTimeoutRef = useRef<number | null>(null);
   const os = detectOs();
+  const navItems = getNavItems(t);
   const isMac = os === "macos";
   const isWindows = os === "windows";
   const canExpandSidebar = maxSidebarWidth >= MIN_EXPANDED_SIDEBAR_WIDTH;
@@ -262,7 +265,7 @@ export function App() {
           className={styles.resizeHandle}
           role="separator"
           aria-orientation="vertical"
-          aria-label="Изменить ширину навигации"
+          aria-label={t("app.sidebar.resize")}
           onPointerDown={handleResizeStart}
         >
           <div className={styles.resizeHandleGrip} />

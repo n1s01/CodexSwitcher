@@ -152,7 +152,24 @@
   color: rgba(255, 255, 255, 0.82);
 }
 
+.navItem:disabled {
+  cursor: default;
+}
+
+.navItem:disabled:hover,
+.navItem:disabled:active {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.42);
+}
+
 .navItemActive {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.navItemActive:disabled,
+.navItemActive:disabled:hover,
+.navItemActive:disabled:active {
   background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.95);
 }

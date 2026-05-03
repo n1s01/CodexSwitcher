@@ -4,6 +4,7 @@ import {
   WindowMaximizeIcon,
   WindowMinimizeIcon,
 } from "../../shared/ui/icons/AppIcons";
+import { useI18n } from "../../shared/i18n/I18nProvider";
 import styles from "./Titlebar.module.css";
 
 type TitlebarProps = {
@@ -12,6 +13,8 @@ type TitlebarProps = {
 };
 
 export function Titlebar({ isMac, isWindows }: TitlebarProps) {
+  const { t } = useI18n();
+
   const runWindowAction = (action: (appWindow: ReturnType<typeof getCurrentWindow>) => unknown) => {
     try {
       void action(getCurrentWindow());
@@ -42,7 +45,7 @@ export function Titlebar({ isMac, isWindows }: TitlebarProps) {
           <button
             className={styles.windowControl}
             type="button"
-            aria-label="Свернуть"
+            aria-label={t("app.window.minimize")}
             onClick={handleMinimize}
           >
             <WindowMinimizeIcon />
@@ -50,7 +53,7 @@ export function Titlebar({ isMac, isWindows }: TitlebarProps) {
           <button
             className={styles.windowControl}
             type="button"
-            aria-label="Развернуть"
+            aria-label={t("app.window.maximize")}
             onClick={handleToggleMaximize}
           >
             <WindowMaximizeIcon />
@@ -58,7 +61,7 @@ export function Titlebar({ isMac, isWindows }: TitlebarProps) {
           <button
             className={`${styles.windowControl} ${styles.windowControlClose}`}
             type="button"
-            aria-label="Закрыть"
+            aria-label={t("app.window.close")}
             onClick={handleClose}
           >
             <WindowCloseIcon />

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "../../../shared/i18n/I18nProvider";
 import { parseAccountImport } from "../model/account-utils";
 import styles from "./AddAccountModal.module.css";
 
@@ -9,7 +10,7 @@ interface ValidationState {
   accountId: boolean;
   email: string | null;
   planType: string | null;
-  exp: string | null;
+  exp: number | null;
 }
 
 function validate(raw: string): ValidationState | null {
@@ -25,10 +26,7 @@ function validate(raw: string): ValidationState | null {
     accountId: Boolean(parsed.accountId),
     email: parsed.email,
     planType: parsed.planType,
-    exp:
-      typeof parsed.exp === "number"
-        ? new Date(parsed.exp * 1000).toLocaleString("ru-RU")
-        : null,
+    exp: typeof parsed.exp === "number" ? parsed.exp : null,
   };
 }
 
@@ -40,19 +38,12 @@ interface AddAccountModalProps {
 
 type AuthStage = "idle" | "opening" | "waiting" | "saving";
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Что-то пошло не так. Попробуйте еще раз.";
-}
-
 export function AddAccountModal({
   onClose,
   onAdd,
   onAuthorize,
 }: AddAccountModalProps) {
+  const { t, formatDateTime } = useI18n();
   const [closing, setClosing] = useState(false);
   const [raw, setRaw] = useState("");
   const [authStage, setAuthStage] = useState<AuthStage>("idle");
@@ -68,6 +59,24 @@ export function AddAccountModal({
   const isValidJson = hasContent && validation !== null;
   const isInvalidJson = hasContent && validation === null;
   const isBusy = authStage !== "idle" || isSubmittingImport;
+  const localizedValidation = validation
+    ? {
+        ...validation,
+        exp: validation.exp
+          ? t("accounts.modal.validUntil", {
+              value: formatDateTime(validation.exp),
+            })
+          : null,
+      }
+    : null;
+
+  const getErrorMessage = (error: unknown) => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    return t("accounts.modal.error");
+  };
 
   const close = (force = false) => {
     if (isBusy && !force) {
@@ -159,11 +168,11 @@ export function AddAccountModal({
 
   const authStatusText =
     authStage === "opening"
-      ? "Открываем окно входа..."
+      ? t("accounts.modal.opening")
       : authStage === "waiting"
-        ? "Ждем подтверждения в окне авторизации..."
+        ? t("accounts.modal.waiting")
         : authStage === "saving"
-          ? "Сохраняем аккаунт..."
+          ? t("accounts.modal.saving")
           : null;
 
   return createPortal(
@@ -173,17 +182,17 @@ export function AddAccountModal({
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
-      aria-label="Добавить аккаунт"
+      aria-label={t("accounts.modal.add.aria")}
     >
       <div className={`${styles.modal} ${closing ? styles.closing : ""}`}>
         {/* Header */}
         <div className={styles.header}>
-          <span className={styles.title}>Добавить аккаунт</span>
+          <span className={styles.title}>{t("accounts.modal.add.title")}</span>
           <button
             type="button"
             className={styles.closeButton}
             onClick={() => close()}
-            aria-label="Закрыть"
+            aria-label={t("app.window.close")}
             disabled={isBusy}
           >
             <svg className={styles.closeIcon} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -194,7 +203,7 @@ export function AddAccountModal({
 
         {/* JSON field */}
         <div className={styles.body}>
-          <div className={styles.fieldLabel}>Данные авторизации</div>
+          <div className={styles.fieldLabel}>{t("accounts.modal.authData")}</div>
           <div
             className={`${styles.textareaWrap} ${
               isValidJson ? styles.valid : isInvalidJson ? styles.invalid : ""
@@ -204,7 +213,7 @@ export function AddAccountModal({
               className={styles.textarea}
               value={raw}
               onChange={(e) => setRaw(e.target.value)}
-              placeholder={'Вставьте JSON с токенами\n{"tokens": {"access_token": "...", ...}}'}
+              placeholder={t("accounts.modal.placeholder")}
               spellCheck={false}
               autoFocus
               disabled={isBusy}
@@ -212,36 +221,36 @@ export function AddAccountModal({
           </div>
 
           {/* Validation feedback */}
-          {validation && (
+          {localizedValidation && (
             <div className={styles.validationList}>
-              <div className={`${styles.validationRow} ${validation.accessToken ? styles.ok : styles.missing}`}>
+              <div className={`${styles.validationRow} ${localizedValidation.accessToken ? styles.ok : styles.missing}`}>
                 <span className={styles.validationDot} />
                 access_token
               </div>
-              <div className={`${styles.validationRow} ${validation.refreshToken ? styles.ok : styles.missing}`}>
+              <div className={`${styles.validationRow} ${localizedValidation.refreshToken ? styles.ok : styles.missing}`}>
                 <span className={styles.validationDot} />
                 refresh_token
               </div>
-              <div className={`${styles.validationRow} ${validation.accountId ? styles.ok : styles.missing}`}>
+              <div className={`${styles.validationRow} ${localizedValidation.accountId ? styles.ok : styles.missing}`}>
                 <span className={styles.validationDot} />
                 account_id
               </div>
 
-              {(validation.email || validation.planType || validation.exp) && (
+              {(localizedValidation.email || localizedValidation.planType || localizedValidation.exp) && (
                 <div className={styles.validationExtra}>
-                  {validation.email && (
+                  {localizedValidation.email && (
                     <span className={`${styles.validationChip} ${styles.visible}`}>
-                      {validation.email}
+                      {localizedValidation.email}
                     </span>
                   )}
-                  {validation.planType && (
+                  {localizedValidation.planType && (
                     <span className={`${styles.validationChip} ${styles.visible}`}>
-                      {validation.planType}
+                      {localizedValidation.planType}
                     </span>
                   )}
-                  {validation.exp && (
+                  {localizedValidation.exp && (
                     <span className={`${styles.validationChip} ${styles.visible}`}>
-                      до {validation.exp}
+                      {localizedValidation.exp}
                     </span>
                   )}
                 </div>
@@ -253,7 +262,7 @@ export function AddAccountModal({
         {/* Divider */}
         <div className={styles.divider}>
           <div className={styles.dividerLine} />
-          <span className={styles.dividerLabel}>или</span>
+          <span className={styles.dividerLabel}>{t("common.or")}</span>
           <div className={styles.dividerLine} />
         </div>
 
@@ -269,10 +278,10 @@ export function AddAccountModal({
               <circle cx="8" cy="8" r="6" />
               <path d="M8 5v3l2 2" />
             </svg>
-            Начать авторизацию
+            {t("accounts.modal.authorize")}
           </button>
           <span className={styles.autoDesc}>
-            Откроет окно входа OpenAI и сохранит аккаунт в локальный список этого приложения
+            {t("accounts.modal.authorizeDescription")}
           </span>
           {(authStatusText || submitError) && (
             <div
@@ -291,7 +300,7 @@ export function AddAccountModal({
             onClick={() => close()}
             disabled={isBusy}
           >
-            Отмена
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -299,7 +308,7 @@ export function AddAccountModal({
             disabled={!canAdd || isBusy}
             onClick={handleAdd}
           >
-            {isSubmittingImport ? "Сохраняем..." : "Добавить"}
+            {isSubmittingImport ? t("common.saving") : t("accounts.modal.addAction")}
           </button>
         </div>
       </div>

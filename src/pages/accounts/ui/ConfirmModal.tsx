@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "../../../shared/i18n/I18nProvider";
 import styles from "./ConfirmModal.module.css";
 
 export interface ConfirmModalProps {
@@ -16,14 +17,16 @@ export function ConfirmModal({
   title,
   description,
   confirmLabel,
-  cancelLabel = "Отмена",
+  cancelLabel,
   variant = "default",
   onConfirm,
   onClose,
 }: ConfirmModalProps) {
+  const { t } = useI18n();
   const [closing, setClosing] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const resolvedCancelLabel = cancelLabel ?? t("common.cancel");
 
   const close = () => {
     if (isPending) return;
@@ -81,7 +84,7 @@ export function ConfirmModal({
             onClick={close}
             disabled={isPending}
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             type="button"

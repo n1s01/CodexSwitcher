@@ -5,6 +5,7 @@ import {
 } from "../../shared/ui/icons/AppIcons";
 import type { NavItem, TabId } from "../../features/navigation/model/types";
 import logo from "../../assets/logo.png";
+import { useI18n } from "../../shared/i18n/I18nProvider";
 
 type SidebarProps = {
   items: NavItem[];
@@ -27,6 +28,8 @@ export function Sidebar({
   onTabChange,
   onToggleCollapse,
 }: SidebarProps) {
+  const { t } = useI18n();
+
   return (
     <aside
       className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ""} ${
@@ -41,22 +44,30 @@ export function Sidebar({
         <img src={logo} className={styles.brandLogo} alt="CodexSwitcher logo" />
         <div className={styles.brandText} aria-hidden={isCollapsed}>
           <span className={styles.brandName}>CodexSwitcher</span>
-          <span className={styles.brandSub}>Account manager</span>
+          <span className={styles.brandSub}>{t("app.sidebar.accountManager")}</span>
         </div>
       </div>
 
       <div className={styles.divider} />
 
-      <nav className={styles.nav} aria-label="Основная навигация">
+      <nav className={styles.nav} aria-label={t("app.navigation.aria")}>
         {items.map((item) => (
           <button
             key={item.id}
             className={`${styles.navItem} ${item.id === activeTab ? styles.navItemActive : ""}`}
             type="button"
+            disabled={item.id === activeTab}
             onClick={() => onTabChange(item.id)}
             aria-current={item.id === activeTab ? "page" : undefined}
+            aria-disabled={item.id === activeTab ? "true" : undefined}
             aria-label={isCollapsed ? item.label : undefined}
-            title={isCollapsed ? item.label : undefined}
+            title={
+              isCollapsed
+                ? item.id === activeTab
+                  ? `${item.label} · ${t("app.sidebar.current")}`
+                  : item.label
+                : undefined
+            }
           >
             <span className={styles.navIcon}>{item.icon}</span>
             <span className={styles.navLabel} aria-hidden={isCollapsed}>
@@ -70,8 +81,8 @@ export function Sidebar({
         className={styles.collapseButton}
         type="button"
         onClick={onToggleCollapse}
-        aria-label={isCollapsed ? "Развернуть" : "Свернуть"}
-        title={isCollapsed ? "Развернуть" : "Свернуть"}
+        aria-label={isCollapsed ? t("app.sidebar.expand") : t("app.sidebar.collapse")}
+        title={isCollapsed ? t("app.sidebar.expand") : t("app.sidebar.collapse")}
       >
         <span className={styles.collapseButtonIconStack} aria-hidden="true">
           <span
@@ -86,7 +97,7 @@ export function Sidebar({
           </span>
         </span>
         <span className={styles.collapseLabel} aria-hidden={isCollapsed}>
-          Свернуть
+          {t("app.sidebar.collapse")}
         </span>
       </button>
     </aside>
