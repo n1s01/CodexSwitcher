@@ -1,4 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap");
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/fonts/InterVariable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   color-scheme: dark;
@@ -31,11 +37,13 @@ body {
   min-height: 100vh;
   background: transparent;
   overflow: hidden;
+  font-family: "Inter", system-ui, sans-serif;
 }
 
 [data-tauri-drag-region] {
   app-region: drag;
 }
 
-button { font: inherit; cursor: pointer; }
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
 h1, h2, h3, p { margin: 0; }

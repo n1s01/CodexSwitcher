@@ -158,7 +158,7 @@
     border: 0;
     background: transparent;
     color: rgba(255, 255, 255, 0.88);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: "Inter", system-ui, sans-serif;
     font-size: 0.77rem;
     line-height: 1.55;
     resize: vertical;
