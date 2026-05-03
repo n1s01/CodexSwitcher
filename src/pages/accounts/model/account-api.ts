@@ -17,10 +17,18 @@ export function refreshAllAccounts() {
   return invoke<StoredAccountSummary[]>("refresh_all_accounts");
 }
 
+export function refreshAccount(id: string) {
+  return invoke<StoredAccountSummary>("refresh_account", { id });
+}
+
 export function exportAccountJson(id: string) {
   return invoke<string>("export_account_json", { id });
 }
 
 export function deleteAccount(id: string) {
   return invoke<StoredAccountSummary[]>("delete_account", { id });
+}
+
+export function switchAccount(id: string) {
+  return invoke<void>("switch_account", { id });
 }

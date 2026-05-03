@@ -1,7 +1,11 @@
 use std::{
+    env,
     fs,
     path::PathBuf,
+    process::Command,
     sync::{Arc, Mutex},
+    thread,
+    time::Duration,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -9,6 +13,7 @@ use base64::{
     engine::general_purpose::{URL_SAFE, URL_SAFE_NO_PAD},
     Engine,
 };
+use chrono::{DateTime, SecondsFormat, Utc};
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -36,6 +41,24 @@ const USAGE_ENDPOINT: &str = "https://chatgpt.com/backend-api/wham/usage";
 const TOKEN_ENDPOINT: &str = "https://auth.openai.com/oauth/token";
 const AUTHORIZE_ENDPOINT: &str = "https://auth.openai.com/oauth/authorize";
 const AUTH_ORIGINATOR: &str = "codex_vscode";
+const CODEX_APP_NAME: &str = "Codex";
+
+#[derive(Debug, Serialize)]
+struct CodexAuthTokens<'a> {
+    id_token: Option<&'a str>,
+    access_token: &'a str,
+    refresh_token: Option<&'a str>,
+    account_id: Option<&'a str>,
+}
+
+#[derive(Debug, Serialize)]
+struct CodexAuthFile<'a> {
+    auth_mode: &'static str,
+    #[serde(rename = "OPENAI_API_KEY")]
+    openai_api_key: Option<&'static str>,
+    tokens: CodexAuthTokens<'a>,
+    last_refresh: String,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -258,6 +281,348 @@ fn save_accounts(app: &AppHandle, accounts: &[StoredAccount]) -> Result<(), Stri
 
     fs::write(&tmp_path, payload).map_err(|e| e.to_string())?;
     fs::rename(&tmp_path, &path).map_err(|e| e.to_string())
+}
+
+fn codex_auth_file_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+    let codex_dir = home_dir.join(".codex");
+    fs::create_dir_all(&codex_dir).map_err(|e| e.to_string())?;
+    Ok(codex_dir.join("auth.json"))
+}
+
+fn format_auth_refresh_time(timestamp: Option<u64>) -> String {
+    let fallback = Utc::now();
+    let date_time = timestamp
+        .and_then(|seconds| DateTime::<Utc>::from_timestamp(seconds as i64, 0))
+        .unwrap_or(fallback);
+
+    date_time.to_rfc3339_opts(SecondsFormat::Micros, true)
+}
+
+fn save_codex_auth_file(app: &AppHandle, account: &StoredAccount) -> Result<(), String> {
+    let path = codex_auth_file_path(app)?;
+    let tmp_path = path.with_extension("tmp");
+    let payload = CodexAuthFile {
+        auth_mode: "chatgpt",
+        openai_api_key: None,
+        tokens: CodexAuthTokens {
+            id_token: account.id_token.as_deref(),
+            access_token: &account.access_token,
+            refresh_token: account.refresh_token.as_deref(),
+            account_id: account.account_id.as_deref(),
+        },
+        last_refresh: format_auth_refresh_time(account.last_refresh_at),
+    };
+    let bytes = serde_json::to_vec_pretty(&payload).map_err(|e| e.to_string())?;
+
+    fs::write(&tmp_path, bytes).map_err(|e| e.to_string())?;
+    fs::rename(&tmp_path, &path).map_err(|e| e.to_string())
+}
+
+fn codex_dir_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+    Ok(home_dir.join(".codex"))
+}
+
+fn remove_file_if_exists(path: &PathBuf) -> Result<(), String> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+fn remove_dir_if_exists(path: &PathBuf) -> Result<(), String> {
+    match fs::remove_dir_all(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+fn remove_codex_config_files(app: &AppHandle) -> Result<(), String> {
+    let codex_dir = codex_dir_path(app)?;
+    fs::create_dir_all(&codex_dir).map_err(|e| e.to_string())?;
+
+    remove_file_if_exists(&codex_dir.join("auth.json"))?;
+    remove_file_if_exists(&codex_dir.join("config.toml"))?;
+    remove_file_if_exists(&codex_dir.join("codex-sale-codex-app-windows-state.json"))?;
+
+    let entries = match fs::read_dir(&codex_dir) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error.to_string()),
+    };
+
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+
+        if path.extension().and_then(|ext| ext.to_str()) == Some("env") {
+            remove_file_if_exists(&path)?;
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn clear_codex_shell_env() -> Result<(), String> {
+    let status = Command::new("launchctl")
+        .args(["unsetenv", "CODEX_LB_API_KEY"])
+        .status()
+        .map_err(|e| e.to_string())?;
+
+    if status.success() || status.code() == Some(113) {
+        Ok(())
+    } else {
+        Err(format!("launchctl unsetenv завершился с кодом {:?}", status.code()))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn clear_codex_shell_env() -> Result<(), String> {
+    for variable_name in ["CODEX_LB_API_KEY", "OPENAI_API_KEY"] {
+        let status = Command::new("reg")
+            .args(["delete", r"HKCU\Environment", "/F", "/V", variable_name])
+            .status()
+            .map_err(|e| e.to_string())?;
+
+        if !(status.success() || status.code() == Some(1)) {
+            return Err(format!(
+                "reg delete для {} завершился с кодом {:?}",
+                variable_name,
+                status.code()
+            ));
+        }
+
+        unsafe {
+            env::remove_var(variable_name);
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+fn clear_codex_shell_env() -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn clear_codex_boot_agent(app: &AppHandle) -> Result<(), String> {
+    let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+    let agent_path = home_dir
+        .join("Library")
+        .join("LaunchAgents")
+        .join("com.codex.sale.env.plist");
+
+    if agent_path.is_file() {
+        let gui_target = format!("gui/{}", nix_like_uid()?);
+        let _ = Command::new("launchctl")
+            .args(["bootout", &gui_target, &agent_path.to_string_lossy()])
+            .status();
+        remove_file_if_exists(&agent_path)?;
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn nix_like_uid() -> Result<String, String> {
+    let output = Command::new("id")
+        .arg("-u")
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err("Не удалось определить uid пользователя".to_string());
+    }
+
+    let uid = String::from_utf8(output.stdout).map_err(|e| e.to_string())?;
+    Ok(uid.trim().to_string())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn clear_codex_boot_agent(_app: &AppHandle) -> Result<(), String> {
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn codex_session_storage_roots(app: &AppHandle) -> Result<Vec<PathBuf>, String> {
+    let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+    Ok(vec![home_dir
+        .join("Library")
+        .join("Application Support")
+        .join(CODEX_APP_NAME)])
+}
+
+#[cfg(target_os = "windows")]
+fn codex_session_storage_roots(_app: &AppHandle) -> Result<Vec<PathBuf>, String> {
+    let mut roots = Vec::new();
+
+    if let Some(app_data) = env::var_os("APPDATA") {
+        roots.push(PathBuf::from(app_data).join(CODEX_APP_NAME));
+    }
+
+    if let Some(local_app_data) = env::var_os("LOCALAPPDATA") {
+        roots.push(PathBuf::from(local_app_data).join(CODEX_APP_NAME));
+    }
+
+    Ok(roots)
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+fn codex_session_storage_roots(app: &AppHandle) -> Result<Vec<PathBuf>, String> {
+    let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+    Ok(vec![
+        home_dir.join(".config").join(CODEX_APP_NAME),
+        home_dir.join(".config").join(CODEX_APP_NAME.to_lowercase()),
+    ])
+}
+
+fn clear_codex_session_storage(app: &AppHandle) -> Result<(), String> {
+    for root in codex_session_storage_roots(app)? {
+        remove_dir_if_exists(&root.join("Local Storage"))?;
+        remove_dir_if_exists(&root.join("Session Storage"))?;
+    }
+
+    Ok(())
+}
+
+fn cleanup_codex_runtime_state(app: &AppHandle) -> Result<(), String> {
+    remove_codex_config_files(app)?;
+    clear_codex_boot_agent(app)?;
+    clear_codex_shell_env()?;
+    clear_codex_session_storage(app)?;
+    Ok(())
+}
+
+#[cfg(any(target_os = "windows", all(not(target_os = "macos"), not(target_os = "windows"))))]
+fn find_executable_in_path(candidates: &[&str]) -> Option<PathBuf> {
+    let path_var = env::var_os("PATH")?;
+
+    for directory in env::split_paths(&path_var) {
+        for candidate in candidates {
+            let path = directory.join(candidate);
+            if path.is_file() {
+                return Some(path);
+            }
+        }
+    }
+
+    None
+}
+
+#[cfg(target_os = "macos")]
+fn relaunch_codex() -> Result<(), String> {
+    let status = Command::new("open")
+        .args(["-a", CODEX_APP_NAME])
+        .spawn()
+        .map_err(|e| e.to_string())?
+        .wait()
+        .map_err(|e| e.to_string())?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err("Не удалось запустить Codex через open -a Codex".to_string())
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn relaunch_codex() -> Result<(), String> {
+    let local_app_data = env::var_os("LOCALAPPDATA").map(PathBuf::from);
+    let known_paths = local_app_data
+        .into_iter()
+        .map(|dir| dir.join("Programs").join(CODEX_APP_NAME).join("Codex.exe"))
+        .collect::<Vec<_>>();
+    let executable = known_paths
+        .into_iter()
+        .find(|path| path.is_file())
+        .or_else(|| find_executable_in_path(&["Codex.exe", "codex.exe"]));
+
+    if let Some(path) = executable {
+        Command::new("cmd")
+            .args(["/C", "start", "", &path.to_string_lossy()])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        return Ok(());
+    }
+
+    Command::new("cmd")
+        .args(["/C", "start", "", CODEX_APP_NAME])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+fn relaunch_codex() -> Result<(), String> {
+    let executable = find_executable_in_path(&["codex", "Codex"])
+        .ok_or_else(|| "Не удалось найти исполняемый файл Codex в PATH".to_string())?;
+
+    Command::new(executable)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn force_stop_codex() -> Result<(), String> {
+    let status = Command::new("pkill")
+        .args(["-9", "-f", "Codex.app/Contents"])
+        .status()
+        .map_err(|e| e.to_string())?;
+
+    if status.success() || status.code() == Some(1) {
+        Ok(())
+    } else {
+        Err(format!("pkill завершился с кодом {:?}", status.code()))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn force_stop_codex() -> Result<(), String> {
+    let status = Command::new("taskkill")
+        .args(["/F", "/IM", "Codex.exe", "/T"])
+        .status()
+        .map_err(|e| e.to_string())?;
+
+    if status.success() || status.code() == Some(128) {
+        Ok(())
+    } else {
+        Err(format!("taskkill завершился с кодом {:?}", status.code()))
+    }
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+fn force_stop_codex() -> Result<(), String> {
+    let upper_status = Command::new("pkill")
+        .args(["-9", "-x", "Codex"])
+        .status()
+        .map_err(|e| e.to_string())?;
+    let lower_status = Command::new("pkill")
+        .args(["-9", "-x", "codex"])
+        .status()
+        .map_err(|e| e.to_string())?;
+
+    let upper_ok = upper_status.success() || upper_status.code() == Some(1);
+    let lower_ok = lower_status.success() || lower_status.code() == Some(1);
+
+    if upper_ok && lower_ok {
+        Ok(())
+    } else {
+        Err("Не удалось завершить процесс Codex через pkill".to_string())
+    }
+}
+
+fn switch_codex_account(app: &AppHandle, account: &StoredAccount) -> Result<(), String> {
+    force_stop_codex()?;
+    cleanup_codex_runtime_state(app)?;
+    save_codex_auth_file(app, account)?;
+    thread::sleep(Duration::from_millis(900));
+    relaunch_codex()
 }
 
 fn summary_from_account(account: &StoredAccount) -> StoredAccountSummary {
@@ -740,7 +1105,7 @@ async fn wait_for_oauth_callback(
     if let Some(error) = error_message {
         send_callback_response(
             &mut stream,
-            "<html><body style='background:#121214;color:#fff;font-family:system-ui;padding:32px'>Авторизация не завершена. Можно закрыть окно и попробовать еще раз.</body></html>",
+            "<html><body style='background:#121214;color:#fff;font-family:Inter,system-ui,sans-serif;padding:32px'>Авторизация не завершена. Можно закрыть окно и попробовать еще раз.</body></html>",
         )
         .await;
         return Err(format!("OAuth вернул ошибку: {}", error));
@@ -752,7 +1117,7 @@ async fn wait_for_oauth_callback(
     if params.get("state") != Some(&expected_state) {
         send_callback_response(
             &mut stream,
-            "<html><body style='background:#121214;color:#fff;font-family:system-ui;padding:32px'>Состояние авторизации не совпало. Закройте окно и повторите вход.</body></html>",
+            "<html><body style='background:#121214;color:#fff;font-family:Inter,system-ui,sans-serif;padding:32px'>Состояние авторизации не совпало. Закройте окно и повторите вход.</body></html>",
         )
         .await;
         return Err("OAuth state не совпал".to_string());
@@ -765,7 +1130,7 @@ async fn wait_for_oauth_callback(
 
     send_callback_response(
         &mut stream,
-        "<html><body style='background:#121214;color:#fff;font-family:system-ui;padding:32px'>Авторизация завершена. Это окно можно закрыть.</body></html>",
+        "<html><body style='background:#121214;color:#fff;font-family:Inter,system-ui,sans-serif;padding:32px'>Авторизация завершена. Это окно можно закрыть.</body></html>",
     )
     .await;
 
@@ -848,6 +1213,20 @@ fn delete_account(app: AppHandle, id: String) -> Result<Vec<StoredAccountSummary
 }
 
 #[tauri::command]
+fn switch_account(app: AppHandle, id: String) -> Result<(), String> {
+    let mut accounts = load_accounts(&app)?;
+
+    if migrate_accounts(&mut accounts) {
+        save_accounts(&app, &accounts)?;
+    }
+
+    let account = find_account_by_id(&accounts, &id)?;
+    switch_codex_account(&app, account)?;
+
+    Ok(())
+}
+
+#[tauri::command]
 async fn import_account_from_json(
     app: AppHandle,
     raw_json: String,
@@ -883,6 +1262,22 @@ async fn refresh_all_accounts(app: AppHandle) -> Result<Vec<StoredAccountSummary
 
     save_accounts(&app, &accounts)?;
     Ok(accounts.iter().map(summary_from_account).collect())
+}
+
+#[tauri::command]
+async fn refresh_account(app: AppHandle, id: String) -> Result<StoredAccountSummary, String> {
+    let mut accounts = load_accounts(&app)?;
+    let account = accounts
+        .iter_mut()
+        .find(|account| account.id == id)
+        .ok_or_else(|| "Аккаунт не найден".to_string())?;
+    let client = build_http_client()?;
+
+    sync_account(&client, account).await;
+
+    let summary = summary_from_account(account);
+    save_accounts(&app, &accounts)?;
+    Ok(summary)
 }
 
 #[tauri::command]
@@ -998,8 +1393,10 @@ pub fn run() {
             list_accounts,
             export_account_json,
             delete_account,
+            switch_account,
             import_account_from_json,
             refresh_all_accounts,
+            refresh_account,
             start_codex_authorization
         ])
         .run(tauri::generate_context!())
