@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   AccountEmptyIcon,
   ChevronDownIcon,
@@ -6,6 +6,7 @@ import {
   FilterIcon,
   PlusIcon,
   RefreshIcon,
+  RefreshSingleIcon,
   SearchIcon,
   SwitchIcon,
   TrashIcon,
@@ -15,20 +16,22 @@ import {
   exportAccountJson,
   importAccountFromJson,
   listAccounts,
+  refreshAccount,
   refreshAllAccounts,
   startCodexAuthorization,
+  switchAccount,
 } from "../model/account-api";
 import {
-  formatDateOnly,
-  formatPercent,
   upsertAccountSummary,
 } from "../model/account-utils";
 import type { StoredAccountSummary } from "../model/account-types";
 import { AddAccountModal } from "./AddAccountModal";
 import { ConfirmModal } from "./ConfirmModal";
 import styles from "./AccountsPage.module.css";
+import { useI18n } from "../../../shared/i18n/I18nProvider";
+import { useToast } from "../../../shared/ui/toast/ToastProvider";
 
-const subscriptionOptions = ["Все", "Free", "Go", "Plus", "Pro"] as const;
+const subscriptionOptions = ["all", "free", "go", "plus", "pro"] as const;
 
 type SubscriptionFilter = (typeof subscriptionOptions)[number];
 
@@ -39,6 +42,7 @@ const COMPACT_BREAKPOINTS = [
 ] as const;
 const DISPLAY_NAME_MAX_LENGTH = 28;
 const COPY_FEEDBACK_TIMEOUT_MS = 1800;
+const AUTO_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
 function resolveCompactLevel(width: number): 0 | 1 | 2 | 3 {
   for (const breakpoint of COMPACT_BREAKPOINTS) {
@@ -49,27 +53,15 @@ function resolveCompactLevel(width: number): 0 | 1 | 2 | 3 {
   return 0;
 }
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "Не удалось выполнить операцию.";
-}
-
 function matchesSubscription(
   account: StoredAccountSummary,
   filter: SubscriptionFilter,
 ) {
-  if (filter === "Все") {
+  if (filter === "all") {
     return true;
   }
 
-  return account.planType?.toLowerCase() === filter.toLowerCase();
+  return account.planType?.toLowerCase() === filter;
 }
 
 function matchesSearch(account: StoredAccountSummary, query: string) {
@@ -122,7 +114,7 @@ function getRemainingUsagePercent(account: StoredAccountSummary) {
   return Math.max(0, Math.min(100, 100 - account.usage.usedPercent));
 }
 
-async function copyTextToClipboard(text: string) {
+async function copyTextToClipboard(text: string, errorMessage: string) {
   if (navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);
@@ -145,7 +137,7 @@ async function copyTextToClipboard(text: string) {
   textarea.remove();
 
   if (!success) {
-    throw new Error("Не удалось скопировать JSON аккаунта.");
+    throw new Error(errorMessage);
   }
 }
 
@@ -172,10 +164,84 @@ function getAvatarText(account: StoredAccountSummary) {
   return `${words[0][0] ?? ""}${words[1][0] ?? ""}`.toUpperCase();
 }
 
+function RotatingIcon({
+  active,
+  className,
+  children,
+}: {
+  active: boolean;
+  className: string;
+  children: ReactNode;
+}) {
+  const frameRef = useRef<number | null>(null);
+  const angleRef = useRef(0);
+  const previousTimeRef = useRef<number | null>(null);
+  const [angle, setAngle] = useState(0);
+  const [transition, setTransition] = useState("transform 420ms cubic-bezier(0.22, 1, 0.36, 1)");
+
+  useEffect(() => {
+    if (!active) {
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+
+      previousTimeRef.current = null;
+
+      const currentAngle = angleRef.current;
+      const normalizedAngle = currentAngle % 360;
+      const settleAngle = normalizedAngle === 0 ? currentAngle : currentAngle + (360 - normalizedAngle);
+
+      setTransition("transform 420ms cubic-bezier(0.16, 1, 0.3, 1)");
+      angleRef.current = settleAngle;
+      setAngle(settleAngle);
+      return undefined;
+    }
+
+    setTransition("none");
+
+    const step = (time: number) => {
+      const previousTime = previousTimeRef.current ?? time;
+      const delta = time - previousTime;
+      previousTimeRef.current = time;
+
+      angleRef.current += delta * 0.42;
+      setAngle(angleRef.current);
+      frameRef.current = window.requestAnimationFrame(step);
+    };
+
+    frameRef.current = window.requestAnimationFrame(step);
+
+    return () => {
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+
+      previousTimeRef.current = null;
+    };
+  }, [active]);
+
+  return (
+    <span
+      className={className}
+      style={{
+        transform: `rotate(${angle}deg)`,
+        transition,
+        willChange: active ? "transform" : undefined,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function AccountsPage() {
+  const { t, formatDateTime, formatPercent } = useI18n();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [subscriptionFilter, setSubscriptionFilter] =
-    useState<SubscriptionFilter>("Все");
+    useState<SubscriptionFilter>("all");
   const [isSubscriptionMenuOpen, setIsSubscriptionMenuOpen] = useState(false);
   const [compactLevel, setCompactLevel] = useState<0 | 1 | 2 | 3>(0);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -184,9 +250,15 @@ export function AccountsPage() {
   const [accounts, setAccounts] = useState<StoredAccountSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshingAccountIds, setRefreshingAccountIds] = useState<string[]>(
+    [],
+  );
   const [pageError, setPageError] = useState<string | null>(null);
   const [copiedAccountId, setCopiedAccountId] = useState<string | null>(null);
   const [deletingAccountId, setDeletingAccountId] = useState<string | null>(
+    null,
+  );
+  const [switchingAccountId, setSwitchingAccountId] = useState<string | null>(
     null,
   );
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -196,6 +268,18 @@ export function AccountsPage() {
   const filterRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
+  const isRefreshingRef = useRef(false);
+  const getErrorMessage = (error: unknown) => {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === "string") {
+      return error;
+    }
+
+    return t("accounts.error.generic");
+  };
 
   useLayoutEffect(() => {
     const page = pageRef.current;
@@ -223,6 +307,10 @@ export function AccountsPage() {
       cancelAnimationFrame(raf);
     };
   }, []);
+
+  useEffect(() => {
+    isRefreshingRef.current = isRefreshing;
+  }, [isRefreshing]);
 
   useEffect(() => {
     void (async () => {
@@ -290,6 +378,20 @@ export function AccountsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (isRefreshingRef.current) {
+        return;
+      }
+
+      void handleRefreshAccounts(true);
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
+
   const handleSelectSubscription = (option: SubscriptionFilter) => {
     setSubscriptionFilter(option);
     setIsSubscriptionMenuOpen(false);
@@ -318,26 +420,91 @@ export function AccountsPage() {
     setPageError(null);
   };
 
-  const handleRefreshAccounts = async () => {
+  const handleRefreshAccounts = async (silent = false) => {
+    if (isRefreshingRef.current) {
+      return;
+    }
+
     setIsRefreshing(true);
-    setPageError(null);
+
+    if (!silent) {
+      setPageError(null);
+    }
 
     try {
       const nextAccounts = await refreshAllAccounts();
       setAccounts(nextAccounts);
+
+      if (!silent) {
+        showToast({
+          tone: "success",
+          title: t("accounts.toast.refreshedTitle"),
+          description: t("accounts.toast.refreshedDescription", {
+            count: nextAccounts.length,
+          }),
+        });
+      }
+
+      if (!silent) {
+        setPageError(null);
+      }
     } catch (error) {
       setPageError(getErrorMessage(error));
+
+      if (!silent) {
+        showToast({
+          tone: "error",
+          title: t("accounts.toast.refreshFailedTitle"),
+          description: getErrorMessage(error),
+        });
+      }
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleRefreshAccount = async (accountId: string) => {
+    setRefreshingAccountIds((current) =>
+      current.includes(accountId) ? current : [...current, accountId],
+    );
+    setPageError(null);
+
+    try {
+      const nextAccount = await refreshAccount(accountId);
+      setAccounts((current) => upsertAccountSummary(current, nextAccount));
+      showToast({
+        tone: "success",
+        title: t("accounts.toast.refreshedOneTitle"),
+        description: t("accounts.toast.refreshedOneDescription", {
+          name: getDisplayName(nextAccount),
+        }),
+      });
+    } catch (error) {
+      setPageError(getErrorMessage(error));
+      showToast({
+        tone: "error",
+        title: t("accounts.toast.refreshFailedTitle"),
+        description: getErrorMessage(error),
+      });
+    } finally {
+      setRefreshingAccountIds((current) =>
+        current.filter((currentId) => currentId !== accountId),
+      );
     }
   };
 
   const handleCopyAccount = async (accountId: string) => {
     try {
       const rawJson = await exportAccountJson(accountId);
-      await copyTextToClipboard(rawJson);
+      await copyTextToClipboard(rawJson, t("accounts.copy.error"));
       setPageError(null);
       setCopiedAccountId(accountId);
+      showToast({
+        tone: "info",
+        title: t("accounts.copy.done"),
+        description: t("accounts.copy.doneDescription"),
+        durationMs: 2200,
+      });
 
       if (copyFeedbackTimeoutRef.current !== null) {
         window.clearTimeout(copyFeedbackTimeoutRef.current);
@@ -365,6 +532,23 @@ export function AccountsPage() {
       setPageError(getErrorMessage(error));
     } finally {
       setDeletingAccountId((current) =>
+        current === accountId ? null : current,
+      );
+    }
+  };
+
+  const handleSwitchAccount = async (accountId: string) => {
+    setSwitchingAccountId(accountId);
+    setPageError(null);
+
+    try {
+      await switchAccount(accountId);
+      setPendingSwitchId(null);
+    } catch (error) {
+      setPageError(getErrorMessage(error));
+      throw error;
+    } finally {
+      setSwitchingAccountId((current) =>
         current === accountId ? null : current,
       );
     }
@@ -399,7 +583,7 @@ export function AccountsPage() {
       ref={pageRef}
       className={`${styles.page} ${compactClassName}`}
       data-ready={isReady ? "" : undefined}
-      aria-label="Аккаунты"
+      aria-label={t("accounts.page.aria")}
     >
       <div
         className={`${styles.toolbar} ${isSearchExpanded ? styles.toolbarSearchExpanded : ""}`}
@@ -414,8 +598,8 @@ export function AccountsPage() {
               className={styles.searchIconButton}
               onClick={handleSearchIconClick}
               tabIndex={isSearchCollapsed ? 0 : -1}
-              aria-label={isSearchCollapsed ? "Открыть поиск" : "Поиск"}
-              title={isSearchCollapsed ? "Поиск по почте" : undefined}
+              aria-label={isSearchCollapsed ? t("accounts.search.open") : t("accounts.search.label")}
+              title={isSearchCollapsed ? t("accounts.search.title") : undefined}
             >
               <span className={styles.fieldIcon} aria-hidden="true">
                 <SearchIcon />
@@ -427,8 +611,8 @@ export function AccountsPage() {
               type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Поиск по почте или account id"
-              aria-label="Поиск по почте или account id"
+              placeholder={t("accounts.search.placeholder")}
+              aria-label={t("accounts.search.placeholder")}
               aria-hidden={isSearchCollapsed}
               tabIndex={isSearchCollapsed ? -1 : 0}
             />
@@ -452,13 +636,17 @@ export function AccountsPage() {
               onClick={handleFilterToggle}
               aria-haspopup="listbox"
               aria-expanded={isSubscriptionMenuOpen}
-              aria-label={`Фильтр по подписке: ${subscriptionFilter}`}
-              title="Фильтр по подписке"
+              aria-label={t("accounts.filter.label", {
+                value: t(`accounts.subscription.${subscriptionFilter}`),
+              })}
+              title={t("accounts.filter.title")}
             >
               <span className={styles.buttonIcon} aria-hidden="true">
                 <FilterIcon />
               </span>
-              <span className={styles.buttonText}>{subscriptionFilter}</span>
+              <span className={styles.buttonText}>
+                {t(`accounts.subscription.${subscriptionFilter}`)}
+              </span>
               <span
                 className={`${styles.chevron} ${isSubscriptionMenuOpen ? styles.chevronOpen : ""}`}
                 aria-hidden="true"
@@ -471,7 +659,7 @@ export function AccountsPage() {
               <div
                 className={styles.filterMenu}
                 role="listbox"
-                aria-label="Выбор подписки"
+                aria-label={t("accounts.filter.menu")}
               >
                 {subscriptionOptions.map((option) => (
                   <button
@@ -490,7 +678,9 @@ export function AccountsPage() {
                       className={styles.optionStatusDot}
                       aria-hidden="true"
                     />
-                    <span className={styles.optionText}>{option}</span>
+                    <span className={styles.optionText}>
+                      {t(`accounts.subscription.${option}`)}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -504,14 +694,14 @@ export function AccountsPage() {
               !showAddLabel ? styles.controlButtonIconOnly : ""
             }`}
             type="button"
-            aria-label="Добавить аккаунт"
-            title="Добавить аккаунт"
+            aria-label={t("accounts.actions.add")}
+            title={t("accounts.actions.add")}
             onClick={() => setIsModalOpen(true)}
           >
             <span className={styles.buttonIcon} aria-hidden="true">
               <PlusIcon />
             </span>
-            <span className={styles.buttonText}>Добавить аккаунт</span>
+            <span className={styles.buttonText}>{t("accounts.actions.add")}</span>
           </button>
 
           <button
@@ -519,16 +709,18 @@ export function AccountsPage() {
               !showRefreshLabel ? styles.controlButtonIconOnly : ""
             }`}
             type="button"
-            aria-label="Обновить информацию"
-            title="Обновить информацию"
-            onClick={handleRefreshAccounts}
+            aria-label={t("accounts.actions.refresh")}
+            title={t("accounts.actions.refresh")}
+            onClick={() => void handleRefreshAccounts()}
             disabled={isRefreshing || isLoading || !hasAccounts}
           >
-            <span className={styles.buttonIcon} aria-hidden="true">
+            <RotatingIcon active={isRefreshing} className={styles.buttonIcon}>
               <RefreshIcon />
-            </span>
+            </RotatingIcon>
             <span className={styles.buttonText}>
-              {isRefreshing ? "Обновляем..." : "Обновить информацию"}
+              {isRefreshing
+                ? t("accounts.actions.refreshing")
+                : t("accounts.actions.refresh")}
             </span>
           </button>
         </div>
@@ -538,9 +730,9 @@ export function AccountsPage() {
         {isLoading ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyCopy}>
-              <h2 className={styles.emptyTitle}>Загружаем аккаунты</h2>
+              <h2 className={styles.emptyTitle}>{t("accounts.state.loadingTitle")}</h2>
               <p className={styles.emptyText}>
-                Читаем локальное хранилище и готовим список аккаунтов.
+                {t("accounts.state.loadingText")}
               </p>
             </div>
           </div>
@@ -551,12 +743,14 @@ export function AccountsPage() {
             </div>
             <div className={styles.emptyCopy}>
               <h2 className={styles.emptyTitle}>
-                {hasAccounts ? "Ничего не найдено" : "Аккаунтов пока нет"}
+                {hasAccounts
+                  ? t("accounts.state.emptyFilteredTitle")
+                  : t("accounts.state.emptyTitle")}
               </h2>
               <p className={styles.emptyText}>
                 {hasAccounts
-                  ? "Попробуйте изменить поиск или фильтр по подписке."
-                  : "Добавленные аккаунты появятся здесь вместе с почтой, подпиской и актуальной информацией."}
+                  ? t("accounts.state.emptyFilteredText")
+                  : t("accounts.state.emptyText")}
               </p>
               {pageError && <p className={styles.errorText}>{pageError}</p>}
             </div>
@@ -569,10 +763,13 @@ export function AccountsPage() {
 
             <div className={styles.accountsHeader}>
               <div className={styles.accountsHeaderTitle}>
-                Сохраненные аккаунты
+                {t("accounts.header.saved")}
               </div>
               <div className={styles.accountsHeaderMeta}>
-                {filteredAccounts.length} из {accounts.length}
+                {t("accounts.header.meta", {
+                  visible: filteredAccounts.length,
+                  total: accounts.length,
+                })}
               </div>
             </div>
 
@@ -580,10 +777,13 @@ export function AccountsPage() {
               {filteredAccounts.map((account) => {
                 const displayName = getDisplayName(account);
                 const remainingUsagePercent = getRemainingUsagePercent(account);
+                const isAccountRefreshing = refreshingAccountIds.includes(
+                  account.id,
+                );
                 const usageHint = account.syncError
                   ? account.syncError
                   : !account.usage
-                    ? "Нет данных по лимиту."
+                    ? t("accounts.usage.missing")
                     : null;
 
                 return (
@@ -608,7 +808,7 @@ export function AccountsPage() {
                             {account.planType
                               ? account.planType.charAt(0).toUpperCase() +
                                 account.planType.slice(1).toLowerCase()
-                              : "Unknown"}
+                              : t("common.unknown")}
                           </span>
                         </div>
 
@@ -619,7 +819,7 @@ export function AccountsPage() {
                     </div>
 
                     <div className={styles.usageBlock}>
-                      <span className={styles.usageLabel}>Использование</span>
+                      <span className={styles.usageLabel}>{t("accounts.usage.label")}</span>
 
                       <div className={styles.usageBarRow}>
                         <div className={styles.usageBar} aria-hidden="true">
@@ -640,9 +840,9 @@ export function AccountsPage() {
 
                     <div className={styles.cardMeta}>
                       <div className={styles.cardMetaItem}>
-                        <span className={styles.cardMetaLabel}>Добавлен</span>
+                        <span className={styles.cardMetaLabel}>{t("accounts.meta.added")}</span>
                         <span className={styles.cardMetaValue}>
-                          {formatDateOnly(account.createdAt)}
+                          {formatDateTime(account.createdAt)}
                         </span>
                       </div>
                       <div
@@ -651,15 +851,31 @@ export function AccountsPage() {
                       />
                       <div className={styles.cardMetaItem}>
                         <span className={styles.cardMetaLabel}>
-                          Сброс лимита
+                          {t("accounts.meta.limitReset")}
                         </span>
                         <span className={styles.cardMetaValue}>
-                          {formatDateOnly(account.usage?.resetAt)}
+                          {formatDateTime(account.usage?.resetAt)}
                         </span>
                       </div>
                     </div>
 
                     <div className={styles.cardActions}>
+                      <button
+                        type="button"
+                        className={styles.actionButton}
+                        onClick={() => handleRefreshAccount(account.id)}
+                        disabled={isRefreshing || isAccountRefreshing}
+                        title={t("accounts.actions.refreshOne")}
+                        aria-label={t("accounts.actions.refreshOne")}
+                      >
+                        <RotatingIcon
+                          active={isAccountRefreshing}
+                          className={styles.actionIcon}
+                        >
+                          <RefreshSingleIcon />
+                        </RotatingIcon>
+                      </button>
+
                       <button
                         type="button"
                         className={`${styles.actionButton} ${
@@ -668,15 +884,16 @@ export function AccountsPage() {
                             : ""
                         }`}
                         onClick={() => handleCopyAccount(account.id)}
+                        disabled={isRefreshing || isAccountRefreshing}
                         title={
                           copiedAccountId === account.id
-                            ? "Скопировано"
-                            : "Скопировать JSON"
+                            ? t("accounts.copy.done")
+                            : t("accounts.copy.json")
                         }
                         aria-label={
                           copiedAccountId === account.id
-                            ? "Скопировано"
-                            : "Скопировать JSON"
+                            ? t("accounts.copy.done")
+                            : t("accounts.copy.json")
                         }
                       >
                         <span className={styles.actionIcon}>
@@ -688,8 +905,13 @@ export function AccountsPage() {
                         type="button"
                         className={styles.actionButton}
                         onClick={() => setPendingSwitchId(account.id)}
-                        title="Переключиться на этот аккаунт"
-                        aria-label="Переключиться"
+                        disabled={
+                          isRefreshing ||
+                          isAccountRefreshing ||
+                          switchingAccountId === account.id
+                        }
+                        title={t("accounts.switch.title")}
+                        aria-label={t("accounts.switch.aria")}
                       >
                         <span className={styles.actionIcon}>
                           <SwitchIcon />
@@ -700,9 +922,13 @@ export function AccountsPage() {
                         type="button"
                         className={`${styles.actionButton} ${styles.actionButtonDanger}`}
                         onClick={() => setPendingDeleteId(account.id)}
-                        disabled={deletingAccountId === account.id}
-                        title="Удалить аккаунт"
-                        aria-label="Удалить аккаунт"
+                        disabled={
+                          isRefreshing ||
+                          isAccountRefreshing ||
+                          deletingAccountId === account.id
+                        }
+                        title={t("accounts.delete.title")}
+                        aria-label={t("accounts.delete.aria")}
                       >
                         <span className={styles.actionIcon}>
                           <TrashIcon />
@@ -731,9 +957,9 @@ export function AccountsPage() {
           const name = account ? getDisplayName(account) : "";
           return (
             <ConfirmModal
-              title="Удалить аккаунт?"
-              description={`Аккаунт «${name}» будет удалён из списка аккаунтов.`}
-              confirmLabel="Удалить"
+              title={t("accounts.confirm.deleteTitle")}
+              description={t("accounts.confirm.deleteDescription", { name })}
+              confirmLabel={t("accounts.confirm.deleteAction")}
               variant="danger"
               onConfirm={() => handleDeleteAccount(pendingDeleteId)}
               onClose={() => setPendingDeleteId(null)}
@@ -743,13 +969,17 @@ export function AccountsPage() {
 
       {pendingSwitchId &&
         (() => {
+          const account = accounts.find((a) => a.id === pendingSwitchId);
+          const name = account
+            ? getDisplayName(account)
+            : t("accounts.confirm.fallbackName");
           return (
             <ConfirmModal
-              title="Переключить аккаунт?"
-              description={`Если Codex запущен, он будет принудительно завершён для перезапуска с новой сессией.`}
-              confirmLabel="Переключиться"
+              title={t("accounts.confirm.switchTitle")}
+              description={t("accounts.confirm.switchDescription", { name })}
+              confirmLabel={t("accounts.confirm.switchAction")}
               variant="default"
-              onConfirm={() => Promise.resolve()}
+              onConfirm={() => handleSwitchAccount(pendingSwitchId)}
               onClose={() => setPendingSwitchId(null)}
             />
           );

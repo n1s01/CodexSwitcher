@@ -101,6 +101,17 @@ export function RefreshIcon() {
   );
 }
 
+export function RefreshSingleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M18 8.5A6.5 6.5 0 0 0 7.55 6.54L5.5 8.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.5 5v3.5H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 15.5A6.5 6.5 0 0 0 16.45 17.46L18.5 15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 19h3.5v-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function AccountEmptyIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
