@@ -3,6 +3,7 @@ import {
   SidebarCollapseIcon,
   SidebarExpandIcon,
 } from "../../shared/ui/icons/AppIcons";
+import { AnimatedText } from "../../shared/ui/animated-text/AnimatedText";
 import type { NavItem, TabId } from "../../features/navigation/model/types";
 import logo from "../../assets/logo.png";
 import { useI18n } from "../../shared/i18n/I18nProvider";
@@ -44,7 +45,7 @@ export function Sidebar({
         <img src={logo} className={styles.brandLogo} alt="CodexSwitcher logo" />
         <div className={styles.brandText} aria-hidden={isCollapsed}>
           <span className={styles.brandName}>CodexSwitcher</span>
-          <span className={styles.brandSub}>{t("app.sidebar.accountManager")}</span>
+          <AnimatedText className={styles.brandSub}>{t("app.sidebar.accountManager")}</AnimatedText>
         </div>
       </div>
 
@@ -71,7 +72,7 @@ export function Sidebar({
           >
             <span className={styles.navIcon}>{item.icon}</span>
             <span className={styles.navLabel} aria-hidden={isCollapsed}>
-              {item.label}
+              <AnimatedText>{item.label}</AnimatedText>
             </span>
           </button>
         ))}
@@ -97,7 +98,7 @@ export function Sidebar({
           </span>
         </span>
         <span className={styles.collapseLabel} aria-hidden={isCollapsed}>
-          {t("app.sidebar.collapse")}
+          <AnimatedText>{t("app.sidebar.collapse")}</AnimatedText>
         </span>
       </button>
     </aside>

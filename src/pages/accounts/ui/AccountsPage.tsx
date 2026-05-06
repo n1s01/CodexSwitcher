@@ -29,6 +29,7 @@ import { AddAccountModal } from "./AddAccountModal";
 import { ConfirmModal } from "./ConfirmModal";
 import styles from "./AccountsPage.module.css";
 import { useI18n } from "../../../shared/i18n/I18nProvider";
+import { AnimatedText } from "../../../shared/ui/animated-text/AnimatedText";
 import { useToast } from "../../../shared/ui/toast/ToastProvider";
 
 const subscriptionOptions = ["all", "free", "go", "plus", "pro"] as const;
@@ -645,7 +646,7 @@ export function AccountsPage() {
                 <FilterIcon />
               </span>
               <span className={styles.buttonText}>
-                {t(`accounts.subscription.${subscriptionFilter}`)}
+                <AnimatedText>{t(`accounts.subscription.${subscriptionFilter}`)}</AnimatedText>
               </span>
               <span
                 className={`${styles.chevron} ${isSubscriptionMenuOpen ? styles.chevronOpen : ""}`}
@@ -679,7 +680,7 @@ export function AccountsPage() {
                       aria-hidden="true"
                     />
                     <span className={styles.optionText}>
-                      {t(`accounts.subscription.${option}`)}
+                      <AnimatedText>{t(`accounts.subscription.${option}`)}</AnimatedText>
                     </span>
                   </button>
                 ))}
@@ -701,7 +702,7 @@ export function AccountsPage() {
             <span className={styles.buttonIcon} aria-hidden="true">
               <PlusIcon />
             </span>
-            <span className={styles.buttonText}>{t("accounts.actions.add")}</span>
+            <span className={styles.buttonText}><AnimatedText>{t("accounts.actions.add")}</AnimatedText></span>
           </button>
 
           <button
@@ -718,9 +719,11 @@ export function AccountsPage() {
               <RefreshIcon />
             </RotatingIcon>
             <span className={styles.buttonText}>
-              {isRefreshing
-                ? t("accounts.actions.refreshing")
-                : t("accounts.actions.refresh")}
+              <AnimatedText>
+                {isRefreshing
+                  ? t("accounts.actions.refreshing")
+                  : t("accounts.actions.refresh")}
+              </AnimatedText>
             </span>
           </button>
         </div>
@@ -730,10 +733,10 @@ export function AccountsPage() {
         {isLoading ? (
           <div className={styles.emptyState}>
             <div className={styles.emptyCopy}>
-              <h2 className={styles.emptyTitle}>{t("accounts.state.loadingTitle")}</h2>
-              <p className={styles.emptyText}>
+              <AnimatedText as="h2" className={styles.emptyTitle}>{t("accounts.state.loadingTitle")}</AnimatedText>
+              <AnimatedText as="p" className={styles.emptyText}>
                 {t("accounts.state.loadingText")}
-              </p>
+              </AnimatedText>
             </div>
           </div>
         ) : !hasVisibleAccounts ? (
@@ -742,17 +745,17 @@ export function AccountsPage() {
               <AccountEmptyIcon />
             </div>
             <div className={styles.emptyCopy}>
-              <h2 className={styles.emptyTitle}>
+              <AnimatedText as="h2" className={styles.emptyTitle}>
                 {hasAccounts
                   ? t("accounts.state.emptyFilteredTitle")
                   : t("accounts.state.emptyTitle")}
-              </h2>
-              <p className={styles.emptyText}>
+              </AnimatedText>
+              <AnimatedText as="p" className={styles.emptyText}>
                 {hasAccounts
                   ? t("accounts.state.emptyFilteredText")
                   : t("accounts.state.emptyText")}
-              </p>
-              {pageError && <p className={styles.errorText}>{pageError}</p>}
+              </AnimatedText>
+              {pageError && <AnimatedText as="p" className={styles.errorText}>{pageError}</AnimatedText>}
             </div>
           </div>
         ) : (
@@ -762,15 +765,15 @@ export function AccountsPage() {
             )}
 
             <div className={styles.accountsHeader}>
-              <div className={styles.accountsHeaderTitle}>
+              <AnimatedText as="div" className={styles.accountsHeaderTitle}>
                 {t("accounts.header.saved")}
-              </div>
-              <div className={styles.accountsHeaderMeta}>
+              </AnimatedText>
+              <AnimatedText as="div" className={styles.accountsHeaderMeta}>
                 {t("accounts.header.meta", {
                   visible: filteredAccounts.length,
                   total: accounts.length,
                 })}
-              </div>
+              </AnimatedText>
             </div>
 
             <div className={styles.accountGrid}>
@@ -805,10 +808,12 @@ export function AccountsPage() {
                           <span
                             className={`${styles.planBadge} ${getPlanBadgeTone(account.planType)}`}
                           >
-                            {account.planType
-                              ? account.planType.charAt(0).toUpperCase() +
-                                account.planType.slice(1).toLowerCase()
-                              : t("common.unknown")}
+                            <AnimatedText>
+                              {account.planType
+                                ? account.planType.charAt(0).toUpperCase() +
+                                  account.planType.slice(1).toLowerCase()
+                                : t("common.unknown")}
+                            </AnimatedText>
                           </span>
                         </div>
 
@@ -819,7 +824,7 @@ export function AccountsPage() {
                     </div>
 
                     <div className={styles.usageBlock}>
-                      <span className={styles.usageLabel}>{t("accounts.usage.label")}</span>
+                      <span className={styles.usageLabel}><AnimatedText>{t("accounts.usage.label")}</AnimatedText></span>
 
                       <div className={styles.usageBarRow}>
                         <div className={styles.usageBar} aria-hidden="true">
@@ -834,13 +839,13 @@ export function AccountsPage() {
                       </div>
 
                       {usageHint && (
-                        <div className={styles.usageHint}>{usageHint}</div>
+                        <AnimatedText as="div" className={styles.usageHint}>{usageHint}</AnimatedText>
                       )}
                     </div>
 
                     <div className={styles.cardMeta}>
                       <div className={styles.cardMetaItem}>
-                        <span className={styles.cardMetaLabel}>{t("accounts.meta.added")}</span>
+                        <span className={styles.cardMetaLabel}><AnimatedText>{t("accounts.meta.added")}</AnimatedText></span>
                         <span className={styles.cardMetaValue}>
                           {formatDateTime(account.createdAt)}
                         </span>
@@ -851,7 +856,7 @@ export function AccountsPage() {
                       />
                       <div className={styles.cardMetaItem}>
                         <span className={styles.cardMetaLabel}>
-                          {t("accounts.meta.limitReset")}
+                          <AnimatedText>{t("accounts.meta.limitReset")}</AnimatedText>
                         </span>
                         <span className={styles.cardMetaValue}>
                           {formatDateTime(account.usage?.resetAt)}

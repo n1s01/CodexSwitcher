@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../../shared/i18n/I18nProvider";
+import { AnimatedText } from "../../../shared/ui/animated-text/AnimatedText";
 import { parseAccountImport } from "../model/account-utils";
 import styles from "./AddAccountModal.module.css";
 
@@ -187,7 +188,7 @@ export function AddAccountModal({
       <div className={`${styles.modal} ${closing ? styles.closing : ""}`}>
         {/* Header */}
         <div className={styles.header}>
-          <span className={styles.title}>{t("accounts.modal.add.title")}</span>
+          <AnimatedText className={styles.title}>{t("accounts.modal.add.title")}</AnimatedText>
           <button
             type="button"
             className={styles.closeButton}
@@ -203,7 +204,7 @@ export function AddAccountModal({
 
         {/* JSON field */}
         <div className={styles.body}>
-          <div className={styles.fieldLabel}>{t("accounts.modal.authData")}</div>
+          <AnimatedText as="div" className={styles.fieldLabel}>{t("accounts.modal.authData")}</AnimatedText>
           <div
             className={`${styles.textareaWrap} ${
               isValidJson ? styles.valid : isInvalidJson ? styles.invalid : ""
@@ -262,7 +263,7 @@ export function AddAccountModal({
         {/* Divider */}
         <div className={styles.divider}>
           <div className={styles.dividerLine} />
-          <span className={styles.dividerLabel}>{t("common.or")}</span>
+          <AnimatedText className={styles.dividerLabel}>{t("common.or")}</AnimatedText>
           <div className={styles.dividerLine} />
         </div>
 
@@ -278,16 +279,16 @@ export function AddAccountModal({
               <circle cx="8" cy="8" r="6" />
               <path d="M8 5v3l2 2" />
             </svg>
-            {t("accounts.modal.authorize")}
+            <AnimatedText>{t("accounts.modal.authorize")}</AnimatedText>
           </button>
-          <span className={styles.autoDesc}>
+          <AnimatedText className={styles.autoDesc}>
             {t("accounts.modal.authorizeDescription")}
-          </span>
+          </AnimatedText>
           {(authStatusText || submitError) && (
             <div
               className={`${styles.statusBox} ${submitError ? styles.statusError : ""}`}
             >
-              {submitError ?? authStatusText}
+              <AnimatedText>{submitError ?? authStatusText}</AnimatedText>
             </div>
           )}
         </div>
@@ -300,7 +301,7 @@ export function AddAccountModal({
             onClick={() => close()}
             disabled={isBusy}
           >
-            {t("common.cancel")}
+            <AnimatedText>{t("common.cancel")}</AnimatedText>
           </button>
           <button
             type="button"
@@ -308,7 +309,7 @@ export function AddAccountModal({
             disabled={!canAdd || isBusy}
             onClick={handleAdd}
           >
-            {isSubmittingImport ? t("common.saving") : t("accounts.modal.addAction")}
+            <AnimatedText>{isSubmittingImport ? t("common.saving") : t("accounts.modal.addAction")}</AnimatedText>
           </button>
         </div>
       </div>

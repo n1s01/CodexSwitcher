@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "../../../shared/i18n/I18nProvider";
+import { AnimatedText } from "../../../shared/ui/animated-text/AnimatedText";
 import styles from "./ConfirmModal.module.css";
 
 export interface ConfirmModalProps {
@@ -73,8 +74,8 @@ export function ConfirmModal({
     >
       <div className={`${styles.modal} ${closing ? styles.closing : ""}`}>
         <div className={styles.body}>
-          <div className={styles.title}>{title}</div>
-          <div className={styles.description}>{description}</div>
+          <AnimatedText as="div" className={styles.title}>{title}</AnimatedText>
+          <AnimatedText as="div" className={styles.description}>{description}</AnimatedText>
         </div>
 
         <div className={styles.actions}>
@@ -84,7 +85,7 @@ export function ConfirmModal({
             onClick={close}
             disabled={isPending}
           >
-            {resolvedCancelLabel}
+            <AnimatedText>{resolvedCancelLabel}</AnimatedText>
           </button>
           <button
             type="button"
@@ -92,7 +93,7 @@ export function ConfirmModal({
             onClick={handleConfirm}
             disabled={isPending}
           >
-            {isPending ? "..." : confirmLabel}
+            <AnimatedText>{isPending ? "..." : confirmLabel}</AnimatedText>
           </button>
         </div>
       </div>
