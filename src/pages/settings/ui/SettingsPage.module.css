@@ -1,0 +1,414 @@
+@keyframes localeSlideUp {
+    from { opacity: 0; transform: translateY(6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+@keyframes localeSlideDown {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@keyframes dropdownIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@keyframes optionIn {
+    from { opacity: 0; transform: translateX(-4px); }
+    to   { opacity: 1; transform: translateX(0);    }
+}
+
+@keyframes errorIn {
+    from { opacity: 0; transform: translateY(-4px); max-height: 0; }
+    to   { opacity: 1; transform: translateY(0);    max-height: 60px; }
+}
+
+@keyframes saveIn {
+    from { opacity: 0; transform: translateX(4px) scale(0.95); }
+    to   { opacity: 1; transform: translateX(0)   scale(1);    }
+}
+
+.page {
+    --accent-soft: rgba(167, 139, 250, 0.18);
+    --accent-mid: rgba(167, 139, 250, 0.34);
+    --accent-strong: rgba(167, 139, 250, 0.66);
+    --accent-text: rgba(224, 220, 255, 0.96);
+    container-type: inline-size;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.settingsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 40px;
+    align-items: start;
+}
+
+.settingRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.settingRow:last-child {
+    border-bottom: none;
+}
+
+.settingRowError {
+    border-color: rgba(248, 113, 113, 0.25);
+}
+
+.pathColumn {
+    display: flex;
+    flex-direction: column;
+}
+
+.settingLabel {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.835rem;
+    font-weight: 460;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Language dropdown ─────────────────────────────────────── */
+
+.languageMenu {
+    position: relative;
+    width: 126px;
+}
+
+.languageButton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 7px;
+    width: 100%;
+    padding: 5px 9px 5px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.825rem;
+    font-weight: 490;
+    cursor: pointer;
+    transition:
+        border-color 140ms,
+        background 140ms,
+        color 140ms,
+        box-shadow 140ms;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.languageButton:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.052);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.languageButtonOpen {
+    border-color: var(--accent-strong);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.languageButtonInner {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+}
+
+.localeAnim_up {
+    animation: localeSlideUp 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.localeAnim_down {
+    animation: localeSlideDown 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.flagBadge {
+    font-size: 0.95em;
+    line-height: 1;
+}
+
+.languageName {
+    color: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chevron {
+    width: 13px;
+    height: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.34);
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), color 140ms;
+    flex: 0 0 13px;
+}
+
+.chevron :global(svg) {
+    width: 100%;
+    height: 100%;
+}
+
+.chevronOpen {
+    transform: rotate(180deg);
+    color: rgba(255, 255, 255, 0.62);
+}
+
+/* dropdown: always rendered, animated via clip + opacity */
+.dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 100%;
+    z-index: 20;
+    padding: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 10px;
+    background: rgba(20, 20, 22, 0.97);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.035),
+        0 12px 28px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(18px) saturate(1.14);
+    -webkit-backdrop-filter: blur(18px) saturate(1.14);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+    transform-origin: top right;
+    transition:
+        opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dropdownOpen {
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.option {
+    width: 100%;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.56);
+    font-size: 0.825rem;
+    font-weight: 490;
+    text-align: left;
+    cursor: pointer;
+    opacity: 0;
+    transition:
+        background 120ms,
+        color 120ms;
+}
+
+.dropdownOpen .option {
+    opacity: 1;
+    animation: optionIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.option:hover {
+    background: rgba(255, 255, 255, 0.055);
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.optionActive {
+    background: rgba(167, 139, 250, 0.13);
+    color: var(--accent-text);
+}
+
+.optionStatusDot {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    flex: 0 0 5px;
+    transition: background 200ms, box-shadow 200ms;
+}
+
+.optionActive .optionStatusDot {
+    background: #a78bfa;
+    box-shadow: 0 0 0 2.5px rgba(167, 139, 250, 0.2);
+}
+
+/* ── Path input ────────────────────────────────────────────── */
+
+.pathInputWrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.pathInput {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.775rem;
+    font-weight: 420;
+    font-family: ui-monospace, monospace;
+    outline: none;
+    transition:
+        border-color 140ms,
+        background 140ms,
+        box-shadow 140ms,
+        color 140ms;
+}
+
+.pathInput::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.pathInput:focus {
+    color: rgba(255, 255, 255, 0.84);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+    border-color: var(--accent-strong);
+}
+
+.pathInputError {
+    border-color: rgba(252, 165, 165, 0.25);
+}
+
+.pathActions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transform: translateX(-8px);
+    transition:
+        width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 160ms ease,
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pathActionsVisible {
+    width: 66px;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+.pathActionButton {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.035);
+    color: rgba(255, 255, 255, 0.72);
+    cursor: pointer;
+    animation: saveIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition:
+        background 130ms,
+        border-color 130ms,
+        color 130ms,
+        box-shadow 130ms,
+        opacity 130ms;
+}
+
+.pathActionButton :global(svg) {
+    width: 15px;
+    height: 15px;
+}
+
+.pathActionButton:hover {
+    color: rgba(255, 255, 255, 0.96);
+}
+
+.pathActionButton:disabled,
+.pathActionButtonSaving {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.pathActionConfirm {
+    border-color: var(--accent-mid);
+    background: rgba(167, 139, 250, 0.1);
+    color: var(--accent-text);
+}
+
+.pathActionConfirm:hover {
+    background: rgba(167, 139, 250, 0.18);
+    border-color: var(--accent-strong);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.pathActionCancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* ── Path validation error ─────────────────────────────────── */
+
+.pathValidationError {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding-left: 2px;
+    margin-top: 4px;
+    animation: errorIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pathValidationDot {
+    width: 4px;
+    height: 4px;
+    flex: 0 0 4px;
+    border-radius: 999px;
+    background: rgba(252, 165, 165, 0.6);
+    position: relative;
+    top: 0;
+}
+
+.pathValidationTitle {
+    color: rgba(252, 165, 165, 0.75);
+    font-size: 0.755rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.pathValidationText {
+    color: rgba(252, 165, 165, 0.45);
+    font-size: 0.745rem;
+    font-weight: 420;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
+
+@container (max-width: 500px) {
+    .settingsGrid {
+        grid-template-columns: 1fr;
+    }
+}

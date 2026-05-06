@@ -132,6 +132,25 @@ export function SettingsIcon() {
   );
 }
 
+export function GlobeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M3.75 12h16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M12 3.75c2.1 2.3 3.25 5.25 3.25 8.25S14.1 17.95 12 20.25C9.9 17.95 8.75 15 8.75 12S9.9 6.05 12 3.75z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function FolderIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3.75 8.5a2.75 2.75 0 0 1 2.75-2.75h3.1l1.65 1.8h6.25a2.75 2.75 0 0 1 2.75 2.75v5.2a2.75 2.75 0 0 1-2.75 2.75H6.5a2.75 2.75 0 0 1-2.75-2.75V8.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M3.75 10.25h16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function WindowMinimizeIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -161,6 +180,22 @@ export function CopyIcon() {
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="9" y="9" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.7" />
       <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6.5 12.5l3.4 3.4 7.6-8.1" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
     </svg>
   );
 }
