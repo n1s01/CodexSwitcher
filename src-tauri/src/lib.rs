@@ -1362,6 +1362,61 @@ async fn start_codex_authorization(app: AppHandle) -> Result<StoredAccountSummar
     Ok(summary_from_account(&account))
 }
 
+#[tauri::command]
+fn get_codex_directory_path(app: AppHandle) -> Result<String, String> {
+    let path = codex_dir_path(&app)?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+#[derive(Debug, Serialize)]
+struct CodexDirValidation {
+    valid: bool,
+    missing_files: Vec<String>,
+}
+
+const CODEX_REQUIRED_FILES: &[&str] = &["auth.json", "config.toml"];
+
+fn expand_path(app: &AppHandle, path: String) -> Result<PathBuf, String> {
+    if path.starts_with("~/") {
+        let home = app.path().home_dir().map_err(|e| e.to_string())?;
+        Ok(home.join(&path[2..]))
+    } else {
+        Ok(PathBuf::from(path))
+    }
+}
+
+#[tauri::command]
+fn validate_codex_directory_path(app: AppHandle, path: String) -> Result<CodexDirValidation, String> {
+    let p = expand_path(&app, path)?;
+
+    if !p.exists() {
+        return Ok(CodexDirValidation {
+            valid: false,
+            missing_files: CODEX_REQUIRED_FILES.iter().map(|s| s.to_string()).collect(),
+        });
+    }
+
+    let missing: Vec<String> = CODEX_REQUIRED_FILES
+        .iter()
+        .filter(|&&f| !p.join(f).exists())
+        .map(|s| s.to_string())
+        .collect();
+
+    Ok(CodexDirValidation {
+        valid: missing.is_empty(),
+        missing_files: missing,
+    })
+}
+
+#[tauri::command]
+fn set_codex_directory_path(app: AppHandle, path: String) -> Result<(), String> {
+    let p = expand_path(&app, path)?;
+    if !p.exists() {
+        fs::create_dir_all(&p).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1397,7 +1452,10 @@ pub fn run() {
             import_account_from_json,
             refresh_all_accounts,
             refresh_account,
-            start_codex_authorization
+            start_codex_authorization,
+            get_codex_directory_path,
+            validate_codex_directory_path,
+            set_codex_directory_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,10 +1,12 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type PropsWithChildren,
 } from "react";
+import { resolveInitialLocale, saveStoredSettings } from "../config/app-settings";
 import { messages, type Locale, type TranslationKey } from "./messages";
 
 type TranslationValue = string | number;
@@ -34,6 +36,10 @@ function interpolate(template: string, params?: TranslationParams) {
 
 function resolveDateLocale(locale: Locale) {
   switch (locale) {
+    case "en":
+      return "en-US";
+    case "zh":
+      return "zh-CN";
     case "ru":
     default:
       return "ru-RU";
@@ -42,9 +48,13 @@ function resolveDateLocale(locale: Locale) {
 
 export function I18nProvider({
   children,
-  defaultLocale = "ru",
+  defaultLocale,
 }: PropsWithChildren<{ defaultLocale?: Locale }>) {
-  const [locale, setLocale] = useState<Locale>(defaultLocale);
+  const [locale, setLocale] = useState<Locale>(() => defaultLocale ?? resolveInitialLocale());
+
+  useEffect(() => {
+    saveStoredSettings({ locale });
+  }, [locale]);
 
   const value = useMemo<I18nContextValue>(() => {
     const dictionary = messages[locale];
