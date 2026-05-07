@@ -10,12 +10,6 @@ import { useI18n } from "../shared/i18n/I18nProvider";
 import { Sidebar } from "../widgets/sidebar/Sidebar";
 import { Titlebar } from "../widgets/titlebar/Titlebar";
 
-const pageByTab: Record<TabId, ReactNode> = {
-  home: <HomePage />,
-  accounts: <AccountsPage />,
-  settings: <SettingsPage />,
-};
-
 const DEFAULT_SIDEBAR_WIDTH = 280;
 const COLLAPSED_SIDEBAR_WIDTH = 76;
 const MIN_EXPANDED_SIDEBAR_WIDTH = 220;
@@ -54,6 +48,11 @@ export function App() {
   const sidebarMotionTimeoutRef = useRef<number | null>(null);
   const os = detectOs();
   const navItems = getNavItems(t);
+  const pageByTab: Record<TabId, ReactNode> = {
+    home: <HomePage onOpenAccounts={() => setActiveTab("accounts")} />,
+    accounts: <AccountsPage />,
+    settings: <SettingsPage />,
+  };
   const isMac = os === "macos";
   const isWindows = os === "windows";
   const canExpandSidebar = maxSidebarWidth >= MIN_EXPANDED_SIDEBAR_WIDTH;
