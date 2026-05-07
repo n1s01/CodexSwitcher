@@ -1,0 +1,414 @@
+.page {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.alert {
+    padding: 12px 14px;
+    border: 1px solid rgba(248, 113, 113, 0.24);
+    border-radius: 12px;
+    background: rgba(248, 113, 113, 0.08);
+    color: rgba(255, 215, 215, 0.92);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.actionRow {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.actionButton {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 0 14px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.032);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.835rem;
+    font-weight: 540;
+    overflow: hidden;
+    transition:
+        border-color 150ms,
+        background 150ms,
+        color 150ms,
+        opacity 150ms;
+}
+
+.actionButton:hover {
+    border-color: rgba(255, 255, 255, 0.095);
+    background: rgba(255, 255, 255, 0.058);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.actionButton:disabled {
+    opacity: 0.42;
+    cursor: default;
+}
+
+.actionButton:focus-visible,
+.linkPanel:focus-visible {
+    outline: 0;
+    border-color: rgba(147, 197, 253, 0.42);
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.12);
+}
+
+.actionButtonPrimary {
+    border-color: rgba(96, 165, 250, 0.26);
+    background: rgba(96, 165, 250, 0.13);
+    color: rgba(191, 219, 254, 0.95);
+}
+
+.actionButtonPrimary:hover {
+    border-color: rgba(96, 165, 250, 0.38);
+    background: rgba(96, 165, 250, 0.18);
+    color: #ffffff;
+}
+
+.actionIcon,
+.linkIcon {
+    width: 17px;
+    height: 17px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 17px;
+}
+
+.actionIcon :global(svg),
+.linkIcon :global(svg),
+.metricIcon :global(svg) {
+    width: 100%;
+    height: 100%;
+}
+
+.metricGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.metricCard,
+.surface,
+.linkPanel {
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    background: rgba(255, 255, 255, 0.018);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.028);
+}
+
+.metricCard {
+    min-width: 0;
+    min-height: 132px;
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+    gap: 8px;
+    padding: 18px;
+    border-radius: 18px;
+}
+
+.metricIcon {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    color: currentColor;
+    background: rgba(255, 255, 255, 0.045);
+    font-size: 0.72rem;
+    font-weight: 720;
+    letter-spacing: -0.03em;
+}
+
+.metricBlue {
+    color: rgba(96, 165, 250, 0.95);
+}
+
+.metricGreen {
+    color: rgba(74, 222, 128, 0.95);
+}
+
+.metricViolet {
+    color: rgba(196, 181, 253, 0.96);
+}
+
+.metricOrange {
+    color: rgba(251, 146, 60, 0.92);
+}
+
+.metricLabel,
+.surfaceMeta {
+    color: rgba(255, 255, 255, 0.36);
+    font-size: 0.76rem;
+    font-weight: 540;
+}
+
+.metricValue {
+    align-self: end;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 1.72rem;
+    font-weight: 650;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    font-variant-numeric: tabular-nums;
+}
+
+.metricHint {
+    color: rgba(255, 255, 255, 0.28);
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.contentGrid,
+.bottomGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+}
+
+.surface {
+    min-width: 0;
+    min-height: 214px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 18px;
+}
+
+.surfaceHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.surfaceTitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+    font-weight: 620;
+}
+
+.planBar {
+    height: 9px;
+    display: flex;
+    gap: 3px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.055);
+}
+
+.planSegment {
+    min-width: 8px;
+    border-radius: inherit;
+}
+
+.planList {
+    display: grid;
+    gap: 8px;
+}
+
+.planRow {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    min-height: 30px;
+}
+
+.planDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.planName {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+    font-weight: 510;
+}
+
+.planCount {
+    color: rgba(255, 255, 255, 0.46);
+    font-size: 0.78rem;
+    font-weight: 570;
+    font-variant-numeric: tabular-nums;
+}
+
+.plan_free {
+    color: rgba(134, 239, 172, 0.84);
+    background: rgba(134, 239, 172, 0.66);
+}
+
+.plan_go {
+    color: rgba(147, 197, 253, 0.88);
+    background: rgba(147, 197, 253, 0.68);
+}
+
+.plan_plus {
+    color: rgba(216, 180, 254, 0.88);
+    background: rgba(216, 180, 254, 0.68);
+}
+
+.plan_pro {
+    color: rgba(221, 214, 254, 0.94);
+    background: rgba(196, 181, 253, 0.78);
+}
+
+.plan_unknown {
+    color: rgba(255, 255, 255, 0.34);
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.accountList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.accountRow {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 11px;
+    min-height: 44px;
+    padding: 0 11px 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.045);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.024);
+}
+
+.accountRowWarning {
+    border-color: rgba(251, 146, 60, 0.12);
+    background: rgba(251, 146, 60, 0.035);
+}
+
+.accountAvatar {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.045);
+    color: rgba(255, 255, 255, 0.54);
+    font-size: 0.62rem;
+    font-weight: 680;
+    letter-spacing: 0.04em;
+}
+
+.accountCopy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.accountName {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.8rem;
+    font-weight: 560;
+}
+
+.accountMeta {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.7rem;
+}
+
+.accountQuota {
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 0.78rem;
+    font-weight: 620;
+    font-variant-numeric: tabular-nums;
+}
+
+.emptyBlock {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 118px;
+    color: rgba(255, 255, 255, 0.32);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.linkPanel {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 18px;
+    border-radius: 14px;
+    color: rgba(191, 219, 254, 0.92);
+    font-size: 0.86rem;
+    font-weight: 590;
+    text-align: left;
+    overflow: hidden;
+    transition:
+        border-color 150ms,
+        background 150ms,
+        color 150ms;
+}
+
+.linkPanel:hover {
+    border-color: rgba(96, 165, 250, 0.24);
+    background: rgba(96, 165, 250, 0.06);
+    color: rgba(219, 234, 254, 1);
+}
+
+.exportPanel {
+    color: rgba(216, 180, 254, 0.92);
+}
+
+.exportPanel:hover {
+    border-color: rgba(168, 85, 247, 0.22);
+    background: rgba(168, 85, 247, 0.06);
+    color: rgba(237, 233, 254, 1);
+}
+
+@media (max-width: 1040px) {
+    .metricGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .actionRow {
+        justify-content: stretch;
+    }
+
+    .actionButton {
+        flex: 1;
+    }
+
+    .contentGrid,
+    .bottomGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .metricGrid {
+        grid-template-columns: 1fr;
+    }
+}
