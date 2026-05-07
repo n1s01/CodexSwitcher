@@ -3,6 +3,7 @@ import styles from "./App.module.css";
 import "./styles.css";
 import { getNavItems } from "../features/navigation/model/nav-items";
 import type { TabId } from "../features/navigation/model/types";
+import { refreshAllAccounts } from "../pages/accounts/model/account-api";
 import { AccountsPage } from "../pages/accounts/ui/AccountsPage";
 import { HomePage } from "../pages/home/ui/HomePage";
 import { SettingsPage } from "../pages/settings/ui/SettingsPage";
@@ -17,6 +18,7 @@ const MAX_SIDEBAR_WIDTH_RATIO = 0.35;
 const RESIZE_HANDLE_WIDTH = 12;
 const SIDEBAR_EXPAND_DURATION = 380;
 const SIDEBAR_COLLAPSE_DURATION = 320;
+const AUTO_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
 type SidebarMotionState = "idle" | "expanding" | "collapsing";
 
@@ -46,6 +48,7 @@ export function App() {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const resizeGrabOffsetRef = useRef(RESIZE_HANDLE_WIDTH / 2);
   const sidebarMotionTimeoutRef = useRef<number | null>(null);
+  const isAutoRefreshingRef = useRef(false);
   const os = detectOs();
   const navItems = getNavItems(t);
   const pageByTab: Record<TabId, ReactNode> = {
@@ -117,6 +120,34 @@ export function App() {
       if (sidebarMotionTimeoutRef.current !== null) {
         window.clearTimeout(sidebarMotionTimeoutRef.current);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    const runAutoRefresh = async () => {
+      if (isAutoRefreshingRef.current) {
+        return;
+      }
+
+      isAutoRefreshingRef.current = true;
+
+      try {
+        await refreshAllAccounts();
+      } catch (error) {
+        console.error("Automatic account refresh failed", error);
+      } finally {
+        isAutoRefreshingRef.current = false;
+      }
+    };
+
+    void runAutoRefresh();
+
+    const interval = window.setInterval(() => {
+      void runAutoRefresh();
+    }, AUTO_REFRESH_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(interval);
     };
   }, []);
 

@@ -43,7 +43,6 @@ const COMPACT_BREAKPOINTS = [
 ] as const;
 const DISPLAY_NAME_MAX_LENGTH = 28;
 const COPY_FEEDBACK_TIMEOUT_MS = 1800;
-const AUTO_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 
 function resolveCompactLevel(width: number): 0 | 1 | 2 | 3 {
   for (const breakpoint of COMPACT_BREAKPOINTS) {
@@ -376,20 +375,6 @@ export function AccountsPage() {
       if (copyFeedbackTimeoutRef.current !== null) {
         window.clearTimeout(copyFeedbackTimeoutRef.current);
       }
-    };
-  }, []);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      if (isRefreshingRef.current) {
-        return;
-      }
-
-      void handleRefreshAccounts(true);
-    }, AUTO_REFRESH_INTERVAL_MS);
-
-    return () => {
-      window.clearInterval(interval);
     };
   }, []);
 
