@@ -6,7 +6,7 @@ export function listAccounts() {
 }
 
 export function importAccountFromJson(rawJson: string) {
-  return invoke<StoredAccountSummary>("import_account_from_json", { rawJson });
+  return invoke<StoredAccountSummary[]>("import_account_from_json", { rawJson });
 }
 
 export function startCodexAuthorization() {
@@ -23,6 +23,10 @@ export function refreshAccount(id: string) {
 
 export function exportAccountJson(id: string) {
   return invoke<string>("export_account_json", { id });
+}
+
+export function exportAccountsJson() {
+  return invoke<string>("export_accounts_json");
 }
 
 export function deleteAccount(id: string) {

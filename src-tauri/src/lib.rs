@@ -13,6 +13,10 @@ use base64::{
     engine::general_purpose::{URL_SAFE, URL_SAFE_NO_PAD},
     Engine,
 };
+use aes_gcm::{
+    aead::{Aead, KeyInit},
+    Aes256Gcm, Nonce,
+};
 use chrono::{DateTime, SecondsFormat, Utc};
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use serde::{Deserialize, Serialize};
@@ -42,6 +46,8 @@ const TOKEN_ENDPOINT: &str = "https://auth.openai.com/oauth/token";
 const AUTHORIZE_ENDPOINT: &str = "https://auth.openai.com/oauth/authorize";
 const AUTH_ORIGINATOR: &str = "codex_vscode";
 const CODEX_APP_NAME: &str = "Codex";
+const TRANSFER_BLOB_PREFIX: &str = "csx1";
+const TRANSFER_BLOB_SEED: &str = "CodexSwitcher transfer blob v1";
 
 #[derive(Debug, Serialize)]
 struct CodexAuthTokens<'a> {
@@ -141,6 +147,13 @@ struct StoredAccountSummary {
     created_at: Option<u64>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AccountTransferEnvelope {
+    version: u8,
+    accounts: Vec<StoredAccount>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct OAuthTokenResponse {
     access_token: String,
@@ -189,6 +202,72 @@ fn accounts_file_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir.join(ACCOUNTS_FILE_NAME))
+}
+
+fn transfer_blob_key() -> [u8; 32] {
+    Sha256::digest(TRANSFER_BLOB_SEED.as_bytes()).into()
+}
+
+fn encrypt_transfer_blob(payload: &[u8]) -> Result<String, String> {
+    let cipher = Aes256Gcm::new_from_slice(&transfer_blob_key()).map_err(|e| e.to_string())?;
+    let mut nonce_bytes = [0u8; 12];
+    thread_rng().fill(&mut nonce_bytes);
+    let nonce = Nonce::from_slice(&nonce_bytes);
+    let ciphertext = cipher.encrypt(nonce, payload).map_err(|e| e.to_string())?;
+    let mut output = nonce_bytes.to_vec();
+    output.extend(ciphertext);
+    Ok(format!(
+        "{}.{}",
+        TRANSFER_BLOB_PREFIX,
+        URL_SAFE_NO_PAD.encode(output)
+    ))
+}
+
+fn decrypt_transfer_blob(raw: &str) -> Result<Vec<u8>, String> {
+    let blob = raw.trim();
+    let encoded = blob
+        .strip_prefix(&format!("{}.", TRANSFER_BLOB_PREFIX))
+        .ok_or_else(|| "Неверный формат зашифрованной строки".to_string())?;
+    let decoded = URL_SAFE_NO_PAD
+        .decode(encoded)
+        .map_err(|e| e.to_string())?;
+
+    if decoded.len() < 12 {
+        return Err("Зашифрованная строка повреждена".to_string());
+    }
+
+    let (nonce_bytes, ciphertext) = decoded.split_at(12);
+    let cipher = Aes256Gcm::new_from_slice(&transfer_blob_key()).map_err(|e| e.to_string())?;
+    let nonce = Nonce::from_slice(nonce_bytes);
+    cipher
+        .decrypt(nonce, ciphertext)
+        .map_err(|e| e.to_string())
+}
+
+fn parse_transfer_accounts(raw_json: &str) -> Result<Vec<StoredAccount>, String> {
+    if let Ok(envelope) = serde_json::from_str::<AccountTransferEnvelope>(raw_json) {
+        return Ok(envelope.accounts);
+    }
+
+    if let Ok(accounts) = serde_json::from_str::<Vec<StoredAccount>>(raw_json) {
+        return Ok(accounts);
+    }
+
+    if let Ok(account) = serde_json::from_str::<StoredAccount>(raw_json) {
+        return Ok(vec![account]);
+    }
+
+    let imported = parse_imported_tokens(raw_json)?;
+    let account = build_stored_account(
+        AccountSource::Manual,
+        imported.access_token,
+        imported.refresh_token,
+        imported.id_token,
+        imported.account_id,
+        None,
+    )?;
+
+    Ok(vec![account])
 }
 
 fn load_accounts(app: &AppHandle) -> Result<Vec<StoredAccount>, String> {
@@ -1194,7 +1273,28 @@ fn export_account_json(app: AppHandle, id: String) -> Result<String, String> {
     }
 
     let account = find_account_by_id(&accounts, &id)?;
-    serde_json::to_string_pretty(account).map_err(|e| e.to_string())
+    let payload = AccountTransferEnvelope {
+        version: 1,
+        accounts: vec![account.clone()],
+    };
+    let raw = serde_json::to_vec(&payload).map_err(|e| e.to_string())?;
+    encrypt_transfer_blob(&raw)
+}
+
+#[tauri::command]
+fn export_accounts_json(app: AppHandle) -> Result<String, String> {
+    let mut accounts = load_accounts(&app)?;
+
+    if migrate_accounts(&mut accounts) {
+        save_accounts(&app, &accounts)?;
+    }
+
+    let payload = AccountTransferEnvelope {
+        version: 1,
+        accounts,
+    };
+    let raw = serde_json::to_vec(&payload).map_err(|e| e.to_string())?;
+    encrypt_transfer_blob(&raw)
 }
 
 #[tauri::command]
@@ -1230,25 +1330,32 @@ fn switch_account(app: AppHandle, id: String) -> Result<(), String> {
 async fn import_account_from_json(
     app: AppHandle,
     raw_json: String,
-) -> Result<StoredAccountSummary, String> {
-    let imported = parse_imported_tokens(&raw_json)?;
-    let mut account = build_stored_account(
-        AccountSource::Manual,
-        imported.access_token,
-        imported.refresh_token,
-        imported.id_token,
-        imported.account_id,
-        None,
-    )?;
+) -> Result<Vec<StoredAccountSummary>, String> {
+    let raw_json = raw_json.trim();
+    let parsed_json = if raw_json.starts_with(&format!("{}.", TRANSFER_BLOB_PREFIX)) {
+        let decrypted = decrypt_transfer_blob(raw_json)?;
+        String::from_utf8(decrypted).map_err(|e| e.to_string())?
+    } else {
+        raw_json.to_string()
+    };
+
+    let mut accounts_to_import = parse_transfer_accounts(&parsed_json)?;
 
     let client = build_http_client()?;
-    sync_account(&client, &mut account).await;
+    for account in &mut accounts_to_import {
+        sync_account(&client, account).await;
+    }
 
     let mut accounts = load_accounts(&app)?;
-    upsert_account(&mut accounts, account.clone());
+    for account in accounts_to_import.iter().cloned() {
+        upsert_account(&mut accounts, account);
+    }
     save_accounts(&app, &accounts)?;
 
-    Ok(summary_from_account(&account))
+    Ok(accounts_to_import
+        .iter()
+        .map(summary_from_account)
+        .collect())
 }
 
 #[tauri::command]
@@ -1447,6 +1554,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             list_accounts,
             export_account_json,
+            export_accounts_json,
             delete_account,
             switch_account,
             import_account_from_json,

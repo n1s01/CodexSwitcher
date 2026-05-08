@@ -30,6 +30,7 @@ base64 = "0.22"
 rand = "0.8"
 sha2 = "0.10"
 url = "2"
+aes-gcm = "0.10"
 
 window-shadows-v2 = "0.1"
 window-vibrancy = "0.7"
