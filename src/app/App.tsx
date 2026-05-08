@@ -19,8 +19,10 @@ const RESIZE_HANDLE_WIDTH = 12;
 const SIDEBAR_EXPAND_DURATION = 380;
 const SIDEBAR_COLLAPSE_DURATION = 320;
 const AUTO_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+const TAB_TRANSITION_DURATION = 720;
 
 type SidebarMotionState = "idle" | "expanding" | "collapsing";
+type TabTransitionDirection = "forward" | "backward";
 
 function detectOs() {
   const platform = `${navigator.platform} ${navigator.userAgent}`;
@@ -45,17 +47,19 @@ export function App() {
   const [isResizing, setIsResizing] = useState(false);
   const [dragSidebarWidth, setDragSidebarWidth] = useState<number | null>(null);
   const [sidebarMotionState, setSidebarMotionState] = useState<SidebarMotionState>("idle");
+  const [visibleTab, setVisibleTab] = useState<TabId>("home");
+  const [leavingTab, setLeavingTab] = useState<TabId | null>(null);
+  const [tabTransitionDirection, setTabTransitionDirection] = useState<TabTransitionDirection>("forward");
+  const [isTabTransitioning, setIsTabTransitioning] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const contentViewportRef = useRef<HTMLDivElement>(null);
   const resizeGrabOffsetRef = useRef(RESIZE_HANDLE_WIDTH / 2);
   const sidebarMotionTimeoutRef = useRef<number | null>(null);
+  const tabTransitionTimeoutRef = useRef<number | null>(null);
   const isAutoRefreshingRef = useRef(false);
   const os = detectOs();
   const navItems = getNavItems(t);
-  const pageByTab: Record<TabId, ReactNode> = {
-    home: <HomePage onOpenAccounts={() => setActiveTab("accounts")} />,
-    accounts: <AccountsPage />,
-    settings: <SettingsPage />,
-  };
   const isMac = os === "macos";
   const isWindows = os === "windows";
   const canExpandSidebar = maxSidebarWidth >= MIN_EXPANDED_SIDEBAR_WIDTH;
@@ -67,6 +71,13 @@ export function App() {
   const expandedWidth = Math.min(Math.max(sidebarWidth, MIN_EXPANDED_SIDEBAR_WIDTH), maxSidebarWidth);
   const currentSidebarWidth = isResizing ? resizingWidth : collapsed ? collapsedWidth : expandedWidth;
   const disableSidebarTransition = isResizing;
+
+  const clearTabTransitionTimeout = () => {
+    if (tabTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(tabTransitionTimeoutRef.current);
+      tabTransitionTimeoutRef.current = null;
+    }
+  };
 
   const getSidebarSnapState = (width: number) => {
     if (!canExpandSidebar) {
@@ -120,6 +131,22 @@ export function App() {
       if (sidebarMotionTimeoutRef.current !== null) {
         window.clearTimeout(sidebarMotionTimeoutRef.current);
       }
+
+      clearTabTransitionTimeout();
+    };
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => {
+      setPrefersReducedMotion(mediaQuery.matches);
+    };
+
+    updatePreference();
+    mediaQuery.addEventListener("change", updatePreference);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updatePreference);
     };
   }, []);
 
@@ -272,6 +299,47 @@ export function App() {
     setIsResizing(true);
   };
 
+  const handleTabChange = (nextTab: TabId) => {
+    if (nextTab === activeTab) {
+      return;
+    }
+
+    const currentTabIndex = navItems.findIndex((item) => item.id === activeTab);
+    const nextTabIndex = navItems.findIndex((item) => item.id === nextTab);
+    const nextDirection =
+      nextTabIndex >= currentTabIndex ? "forward" : "backward";
+
+    clearTabTransitionTimeout();
+    setTabTransitionDirection(nextDirection);
+    setActiveTab(nextTab);
+    setVisibleTab(nextTab);
+
+    if (contentViewportRef.current) {
+      contentViewportRef.current.scrollTo({ top: 0, behavior: "auto" });
+    }
+
+    if (prefersReducedMotion) {
+      setLeavingTab(null);
+      setIsTabTransitioning(false);
+      return;
+    }
+
+    setLeavingTab(activeTab);
+    setIsTabTransitioning(true);
+
+    tabTransitionTimeoutRef.current = window.setTimeout(() => {
+      setLeavingTab(null);
+      setIsTabTransitioning(false);
+      tabTransitionTimeoutRef.current = null;
+    }, TAB_TRANSITION_DURATION);
+  };
+
+  const pageByTab: Record<TabId, ReactNode> = {
+    home: <HomePage onOpenAccounts={() => handleTabChange("accounts")} />,
+    accounts: <AccountsPage />,
+    settings: <SettingsPage />,
+  };
+
   return (
     <div className={styles.shell}>
       <Titlebar isMac={isMac} isWindows={isWindows} />
@@ -287,7 +355,7 @@ export function App() {
           motionState={sidebarMotionState}
           width={currentSidebarWidth}
           disableTransition={disableSidebarTransition}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           onToggleCollapse={handleToggleCollapse}
         />
 
@@ -302,8 +370,30 @@ export function App() {
         </div>
 
         <main className={styles.content}>
-          <div className={styles.contentInner}>
-            {pageByTab[activeTab]}
+          <div
+            ref={contentViewportRef}
+            className={`${styles.contentInner} ${isTabTransitioning ? styles.contentInnerLocked : ""}`}
+          >
+            <div
+              className={`${styles.tabScene} ${styles[`tabScene${tabTransitionDirection === "forward" ? "Forward" : "Backward"}`]}`}
+            >
+              {leavingTab ? (
+                <section
+                  key={`leaving-${leavingTab}`}
+                  className={`${styles.tabPanel} ${styles.tabPanelLeaving}`}
+                  aria-hidden="true"
+                >
+                  {pageByTab[leavingTab]}
+                </section>
+              ) : null}
+
+              <section
+                key={`visible-${visibleTab}`}
+                className={`${styles.tabPanel} ${isTabTransitioning ? styles.tabPanelEntering : styles.tabPanelCurrent}`}
+              >
+                {pageByTab[visibleTab]}
+              </section>
+            </div>
           </div>
         </main>
       </div>
