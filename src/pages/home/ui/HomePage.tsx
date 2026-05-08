@@ -222,8 +222,21 @@ export function HomePage({ onOpenAccounts }: HomePageProps) {
     try {
       const refreshedAccounts = await refreshAllAccounts();
       setAccounts(refreshedAccounts);
+      showToast({
+        tone: "success",
+        title: t("accounts.toast.refreshedTitle"),
+        description: t("accounts.toast.refreshedDescription", {
+          count: refreshedAccounts.length,
+        }),
+      });
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : t("accounts.error.generic"));
+      const message = error instanceof Error ? error.message : t("accounts.error.generic");
+      setPageError(message);
+      showToast({
+        tone: "error",
+        title: t("accounts.toast.refreshFailedTitle"),
+        description: message,
+      });
     } finally {
       setIsRefreshing(false);
     }
