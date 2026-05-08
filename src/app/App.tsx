@@ -152,7 +152,7 @@ export function App() {
 
   useEffect(() => {
     document.body.dataset.useTransparency = useTransparency ? "on" : "off";
-    document.body.dataset.useAnimations = useAnimations ? "on" : "off";
+    document.body.dataset.useAnimations = useAnimations ? "off" : "on";
 
     return () => {
       delete document.body.dataset.useTransparency;
@@ -328,7 +328,7 @@ export function App() {
       contentViewportRef.current.scrollTo({ top: 0, behavior: "auto" });
     }
 
-    if (!useAnimations || prefersReducedMotion) {
+    if (useAnimations || prefersReducedMotion) {
       setLeavingTab(null);
       setIsTabTransitioning(false);
       return;
@@ -351,7 +351,7 @@ export function App() {
   };
 
   return (
-    <div className={styles.shell} data-use-transparency={useTransparency ? "on" : "off"} data-use-animations={useAnimations ? "on" : "off"}>
+    <div className={styles.shell} data-use-transparency={useTransparency ? "on" : "off"} data-use-animations={useAnimations ? "off" : "on"}>
       <Titlebar isMac={isMac} isWindows={isWindows} />
 
       <div
