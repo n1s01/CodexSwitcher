@@ -29,6 +29,11 @@ html, body, #root {
   user-select: none;
 }
 
+body[data-use-transparency="off"],
+body[data-use-transparency="off"] #root {
+  background: #1c1c1e;
+}
+
 img, svg, canvas, video {
   -webkit-user-drag: none;
 }

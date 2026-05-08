@@ -52,11 +52,6 @@
     justify-content: space-between;
     gap: 16px;
     padding: 10px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.045);
-}
-
-.settingRow:last-child {
-    border-bottom: none;
 }
 
 .settingRowError {
@@ -76,11 +71,134 @@
     flex-shrink: 0;
 }
 
+.settingCopy {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.settingDescription {
+    color: rgba(255, 255, 255, 0.34);
+    font-size: 0.74rem;
+    font-weight: 410;
+    line-height: 1.35;
+}
+
 /* ── Language dropdown ─────────────────────────────────────── */
 
 .languageMenu {
     position: relative;
     width: 126px;
+}
+
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    transition:
+        transform 140ms;
+}
+
+.toggle:focus-visible {
+    outline: 0;
+}
+
+.toggleTrack {
+    position: relative;
+    width: 52px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition:
+        background 160ms,
+        border-color 160ms;
+}
+
+.toggleTrack::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 40px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    background: transparent;
+    transform: translate(-50%, -50%);
+    transition:
+        opacity 160ms,
+        transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.toggleTrack::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    width: 2px;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition:
+        opacity 160ms,
+        transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.toggleThumb {
+    position: relative;
+    z-index: 1;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    transform: translateX(0);
+    transition:
+        transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 160ms;
+}
+
+.toggleOn .toggleTrack {
+    background: rgba(167, 139, 250, 0.92);
+    border-color: rgba(167, 139, 250, 0.92);
+}
+
+.toggleOn .toggleTrack::before {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+}
+
+.toggleOn .toggleTrack::after {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+}
+
+.toggleOn .toggleThumb {
+    transform: translateX(28px);
+    background: #ffffff;
+}
+
+.toggle:active .toggleThumb {
+    transform: translateX(0);
+}
+
+.toggleOn:active .toggleThumb {
+    transform: translateX(28px);
+}
+
+.toggle:focus-visible .toggleTrack {
+    border-color: rgba(167, 139, 250, 0.28);
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
 }
 
 .languageButton {
@@ -411,4 +529,18 @@
     .settingsGrid {
         grid-template-columns: 1fr;
     }
+}
+
+:global(body[data-use-transparency="off"]) .languageButton,
+:global(body[data-use-transparency="off"]) .dropdown,
+:global(body[data-use-transparency="off"]) .pathInput,
+:global(body[data-use-transparency="off"]) .pathActionButton,
+:global(body[data-use-transparency="off"]) .toggleTrack {
+    background: #1c1c1e;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:global(body[data-use-transparency="off"]) .toggleOn .toggleTrack {
+    background: #8b8b93;
+    border-color: #8b8b93;
 }

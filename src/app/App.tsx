@@ -39,7 +39,7 @@ function detectOs() {
 }
 
 export function App() {
-  const { t } = useI18n();
+  const { t, useTransparency } = useI18n();
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
@@ -149,6 +149,14 @@ export function App() {
       mediaQuery.removeEventListener("change", updatePreference);
     };
   }, []);
+
+  useEffect(() => {
+    document.body.dataset.useTransparency = useTransparency ? "on" : "off";
+
+    return () => {
+      delete document.body.dataset.useTransparency;
+    };
+  }, [useTransparency]);
 
   useEffect(() => {
     const runAutoRefresh = async () => {
@@ -341,7 +349,7 @@ export function App() {
   };
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-use-transparency={useTransparency ? "on" : "off"}>
       <Titlebar isMac={isMac} isWindows={isWindows} />
 
       <div

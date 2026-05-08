@@ -788,3 +788,20 @@
         grid-template-columns: 1fr;
     }
 }
+
+:global(body[data-use-transparency="off"]) .searchField,
+:global(body[data-use-transparency="off"]) .controlButton,
+:global(body[data-use-transparency="off"]) .filterMenu,
+:global(body[data-use-transparency="off"]) .accountsSurface,
+:global(body[data-use-transparency="off"]) .accountCard,
+:global(body[data-use-transparency="off"]) .surfaceAlert,
+:global(body[data-use-transparency="off"]) .emptyState {
+    background: #1c1c1e;
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+:global(body[data-use-transparency="off"]) .filterOption:hover,
+:global(body[data-use-transparency="off"]) .actionButton:hover {
+    background: #242426;
+}

@@ -6,7 +6,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { resolveInitialLocale, saveStoredSettings } from "../config/app-settings";
+import { resolveInitialLocale, resolveInitialTransparency, saveStoredSettings } from "../config/app-settings";
 import { messages, type Locale, type TranslationKey } from "./messages";
 
 type TranslationValue = string | number;
@@ -15,6 +15,8 @@ type TranslationParams = Record<string, TranslationValue>;
 interface I18nContextValue {
   locale: Locale;
   setLocale: (locale: Locale) => void;
+  useTransparency: boolean;
+  setUseTransparency: (value: boolean) => void;
   t: (key: TranslationKey, params?: TranslationParams) => string;
   formatDateTime: (timestamp: number | null | undefined) => string;
   formatDateTimeFromMs: (timestamp: number | null | undefined) => string;
@@ -51,10 +53,11 @@ export function I18nProvider({
   defaultLocale,
 }: PropsWithChildren<{ defaultLocale?: Locale }>) {
   const [locale, setLocale] = useState<Locale>(() => defaultLocale ?? resolveInitialLocale());
+  const [useTransparency, setUseTransparency] = useState<boolean>(() => resolveInitialTransparency());
 
   useEffect(() => {
-    saveStoredSettings({ locale });
-  }, [locale]);
+    saveStoredSettings({ locale, useTransparency });
+  }, [locale, useTransparency]);
 
   const value = useMemo<I18nContextValue>(() => {
     const dictionary = messages[locale];
@@ -63,6 +66,8 @@ export function I18nProvider({
     return {
       locale,
       setLocale,
+      useTransparency,
+      setUseTransparency,
       t: (key, params) => interpolate(dictionary[key], params),
       formatDateTime: (timestamp) => {
         if (!timestamp) {
@@ -98,7 +103,7 @@ export function I18nProvider({
         return `${Math.round(value)}%`;
       },
     };
-  }, [locale]);
+  }, [locale, useTransparency]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

@@ -59,6 +59,16 @@
     opacity 220ms ease;
 }
 
+:global(body[data-use-transparency="off"]) .toast {
+  background: #222228;
+  border-color: rgba(255, 255, 255, 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 16px 36px rgba(0, 0, 0, 0.24);
+}
+
 .slotOpen .toast {
   transform: translateY(0) scale(1);
   opacity: 1;

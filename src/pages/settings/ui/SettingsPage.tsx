@@ -22,7 +22,7 @@ const languageOptions: LanguageOption[] = [
 ];
 
 export function SettingsPage() {
-  const { locale, setLocale, t } = useI18n();
+  const { locale, setLocale, useTransparency, setUseTransparency, t } = useI18n();
   const { showToast } = useToast();
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [codexDirectoryPath, setCodexDirectoryPath_] = useState<string | null>(null);
@@ -178,6 +178,23 @@ export function SettingsPage() {
                   })}
                 </div>
               </div>
+            </div>
+
+            <div className={styles.settingRow}>
+              <div className={styles.settingCopy}>
+                <AnimatedText className={styles.settingLabel}>{t("settings.transparency.label")}</AnimatedText>
+              </div>
+              <button
+                className={`${styles.toggle} ${useTransparency ? styles.toggleOn : ""}`}
+                type="button"
+                role="switch"
+                aria-checked={useTransparency}
+                onClick={() => setUseTransparency(!useTransparency)}
+              >
+                <span className={styles.toggleTrack} aria-hidden="true">
+                  <span className={styles.toggleThumb} />
+                </span>
+              </button>
             </div>
           </div>
 

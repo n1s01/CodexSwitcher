@@ -4,6 +4,7 @@ const SETTINGS_STORAGE_KEY = "codex-switcher:settings";
 
 type StoredSettings = {
   locale: Locale;
+  useTransparency: boolean;
 };
 
 function isLocale(value: string): value is Locale {
@@ -67,7 +68,10 @@ export function loadStoredSettings(): StoredSettings | null {
       return null;
     }
 
-    return { locale: parsed.locale };
+    return {
+      locale: parsed.locale,
+      useTransparency: typeof parsed.useTransparency === "boolean" ? parsed.useTransparency : true,
+    };
   } catch {
     return null;
   }
@@ -77,13 +81,18 @@ export function resolveInitialLocale(): Locale {
   return loadStoredSettings()?.locale ?? detectSystemLocale();
 }
 
-export function saveStoredSettings(settings: StoredSettings) {
+export function resolveInitialTransparency(): boolean {
+  return loadStoredSettings()?.useTransparency ?? true;
+}
+
+export function saveStoredSettings(settings: Partial<StoredSettings>) {
   if (typeof window === "undefined") {
     return;
   }
 
   try {
-    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    const current = loadStoredSettings() ?? { locale: detectSystemLocale(), useTransparency: true };
+    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ ...current, ...settings }));
   } catch {
     // Ignore storage errors and keep the app functional.
   }

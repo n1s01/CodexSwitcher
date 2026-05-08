@@ -89,6 +89,11 @@
     height: 100%;
 }
 
+.metricIcon :global(svg) {
+    width: 16px;
+    height: 16px;
+}
+
 .metricGrid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -114,12 +119,12 @@
 }
 
 .metricIcon {
-    width: 30px;
-    height: 30px;
+    width: 24px;
+    height: 24px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 9px;
+    border-radius: 8px;
     color: currentColor;
     background: rgba(255, 255, 255, 0.045);
     font-size: 0.72rem;
@@ -384,6 +389,34 @@
     border-color: rgba(168, 85, 247, 0.22);
     background: rgba(168, 85, 247, 0.06);
     color: rgba(237, 233, 254, 1);
+}
+
+:global(body[data-use-transparency="off"]) .alert,
+:global(body[data-use-transparency="off"]) .actionButton,
+:global(body[data-use-transparency="off"]) .metricCard,
+:global(body[data-use-transparency="off"]) .surface,
+:global(body[data-use-transparency="off"]) .linkPanel,
+:global(body[data-use-transparency="off"]) .accountRow,
+:global(body[data-use-transparency="off"]) .metricIcon,
+:global(body[data-use-transparency="off"]) .planBar {
+    background: #1c1c1e;
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+:global(body[data-use-transparency="off"]) .actionButtonPrimary {
+    background: #2a2a2d;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:global(body[data-use-transparency="off"]) .actionButton:hover,
+:global(body[data-use-transparency="off"]) .linkPanel:hover {
+    background: #242426;
+}
+
+:global(body[data-use-transparency="off"]) .actionButtonPrimary:hover,
+:global(body[data-use-transparency="off"]) .exportPanel:hover {
+    background: #303033;
 }
 
 @media (max-width: 1040px) {
