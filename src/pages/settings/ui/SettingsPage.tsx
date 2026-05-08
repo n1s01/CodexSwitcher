@@ -1,44 +1,32 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { PagePanel } from "../../../shared/ui/page-panel/PagePanel";
 import { useI18n } from "../../../shared/i18n/I18nProvider";
 import { useToast } from "../../../shared/ui/toast/ToastProvider";
-import { CheckIcon, ChevronDownIcon, CloseIcon } from "../../../shared/ui/icons/AppIcons";
 import { AnimatedText } from "../../../shared/ui/animated-text/AnimatedText";
 import { getCodexDirectoryPath, setCodexDirectoryPath, validateCodexDirectoryPath } from "../model/settings-api";
+import { SettingToggle } from "../../../shared/ui/settings/SettingToggle";
+import { SettingSelect, type SelectOption } from "../../../shared/ui/settings/SettingSelect";
+import { SettingInput } from "../../../shared/ui/settings/SettingInput";
 import type { Locale } from "../../../shared/i18n/messages";
 import styles from "./SettingsPage.module.css";
 
-type LanguageOption = {
-  locale: Locale;
-  flag: string;
-  label: string;
-  nativeLabel: string;
-};
-
-const languageOptions: LanguageOption[] = [
-  { locale: "en", flag: "🇬🇧", label: "English", nativeLabel: "English" },
-  { locale: "ru", flag: "🇷🇺", label: "Russian", nativeLabel: "Русский" },
-  { locale: "zh", flag: "🇨🇳", label: "Chinese", nativeLabel: "中文" },
+const languageOptions: SelectOption<Locale>[] = [
+  { value: "en", prefix: "🇬🇧", label: "English" },
+  { value: "ru", prefix: "🇷🇺", label: "Русский" },
+  { value: "zh", prefix: "🇨🇳", label: "中文" },
 ];
 
+const localeIndex = (loc: Locale) => languageOptions.findIndex((o) => o.value === loc);
+
 export function SettingsPage() {
-  const { locale, setLocale, useTransparency, setUseTransparency, t } = useI18n();
+  const { locale, setLocale, useTransparency, setUseTransparency, useAnimations, setUseAnimations, t } = useI18n();
   const { showToast } = useToast();
-  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const [codexDirectoryPath, setCodexDirectoryPath_] = useState<string | null>(null);
   const [pathInput, setPathInput] = useState("");
   const [pathDirty, setPathDirty] = useState(false);
   const [pathValidationError, setPathValidationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [localeAnimDir, setLocaleAnimDir] = useState<"up" | "down" | null>(null);
-  const languageMenuRef = useRef<HTMLDivElement>(null);
-
-  const selectedLanguage = useMemo(
-    () => languageOptions.find((o) => o.locale === locale) ?? languageOptions[0],
-    [locale],
-  );
-
-  const localeIndex = (loc: Locale) => languageOptions.findIndex((o) => o.locale === loc);
 
   useEffect(() => {
     let isMounted = true;
@@ -54,29 +42,11 @@ export function SettingsPage() {
     return () => { isMounted = false; };
   }, []);
 
-  useEffect(() => {
-    const handlePointerDown = (e: PointerEvent) => {
-      if (!languageMenuRef.current?.contains(e.target as Node)) {
-        setIsLanguageMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsLanguageMenuOpen(false);
-    };
-    window.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-
   const handleLocaleChange = (next: Locale) => {
     const dir = localeIndex(next) > localeIndex(locale) ? "down" : "up";
     setLocaleAnimDir(dir);
     setTimeout(() => {
       setLocale(next);
-      setIsLanguageMenuOpen(false);
       setTimeout(() => setLocaleAnimDir(null), 320);
     }, 10);
   };
@@ -118,11 +88,6 @@ export function SettingsPage() {
     }
   };
 
-  const handlePathKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSavePath();
-    if (e.key === "Escape") handleCancelPathChanges();
-  };
-
   const handleCancelPathChanges = () => {
     setPathInput(codexDirectoryPath ?? "");
     setPathDirty(false);
@@ -133,118 +98,51 @@ export function SettingsPage() {
     <PagePanel title={t("settings.title")}>
       <section className={styles.page}>
         <div className={styles.settingsGrid}>
-          {/* Left: Language */}
-          <div>
-            <div className={styles.settingRow}>
-              <AnimatedText className={styles.settingLabel}>{t("settings.language.label")}</AnimatedText>
-              <div className={styles.languageMenu} ref={languageMenuRef}>
-                <button
-                  className={`${styles.languageButton} ${isLanguageMenuOpen ? styles.languageButtonOpen : ""}`}
-                  type="button"
-                  aria-haspopup="listbox"
-                  aria-expanded={isLanguageMenuOpen}
-                  onClick={() => setIsLanguageMenuOpen((v) => !v)}
-                >
-                  <span
-                    className={`${styles.languageButtonInner} ${localeAnimDir ? styles[`localeAnim_${localeAnimDir}`] : ""}`}
-                    key={locale}
-                  >
-                    <span className={styles.flagBadge}>{selectedLanguage.flag}</span>
-                    <span className={styles.languageName}>{selectedLanguage.nativeLabel}</span>
-                  </span>
-                  <span className={`${styles.chevron} ${isLanguageMenuOpen ? styles.chevronOpen : ""}`}>
-                    <ChevronDownIcon />
-                  </span>
-                </button>
+            <SettingSelect
+              label={<AnimatedText>{t("settings.language.label")}</AnimatedText>}
+              value={locale}
+              onChange={handleLocaleChange}
+              options={languageOptions}
+              innerClassName={
+                localeAnimDir ? styles[`localeAnim_${localeAnimDir}`] : undefined
+              }
+              innerKey={locale}
+            />
 
-                <div className={`${styles.dropdown} ${isLanguageMenuOpen ? styles.dropdownOpen : ""}`} role="listbox">
-                  {languageOptions.map((option, i) => {
-                    const isActive = option.locale === locale;
-                    return (
-                      <button
-                        key={option.locale}
-                        className={`${styles.option} ${isActive ? styles.optionActive : ""}`}
-                        type="button"
-                        role="option"
-                        aria-selected={isActive}
-                        style={{ transitionDelay: isLanguageMenuOpen ? `${i * 28}ms` : "0ms" }}
-                        onClick={() => handleLocaleChange(option.locale)}
-                      >
-                        <span className={styles.optionStatusDot} />
-                        <span className={styles.flagBadge}>{option.flag}</span>
-                        <span className={styles.languageName}>{option.nativeLabel}</span>
-                      </button>
-                    );
-                  })}
+            <SettingToggle
+              label={<AnimatedText>{t("settings.transparency.label")}</AnimatedText>}
+              checked={useTransparency}
+              onChange={setUseTransparency}
+            />
+
+            <SettingToggle
+              label={<AnimatedText>{t("settings.animations.label")}</AnimatedText>}
+              checked={useAnimations}
+              onChange={setUseAnimations}
+            />
+
+            <div>
+              <SettingInput
+                label={<AnimatedText>{t("settings.path.label")}</AnimatedText>}
+                value={pathInput}
+                onChange={handlePathInput}
+                placeholder={t("settings.path.loading")}
+                isDirty={pathDirty}
+                isSaving={isSaving}
+                saveLabel={t("settings.path.save")}
+                cancelLabel={t("common.cancel")}
+                onSave={handleSavePath}
+                onCancel={handleCancelPathChanges}
+              />
+              {pathValidationError && (
+                <div className={styles.pathValidationError}>
+                  <span className={styles.pathValidationDot} />
+                  <AnimatedText className={styles.pathValidationTitle}>{t("settings.path.invalidTitle")}</AnimatedText>
+                  <AnimatedText className={styles.pathValidationText}>{pathValidationError}</AnimatedText>
                 </div>
-              </div>
-            </div>
-
-            <div className={styles.settingRow}>
-              <div className={styles.settingCopy}>
-                <AnimatedText className={styles.settingLabel}>{t("settings.transparency.label")}</AnimatedText>
-              </div>
-              <button
-                className={`${styles.toggle} ${useTransparency ? styles.toggleOn : ""}`}
-                type="button"
-                role="switch"
-                aria-checked={useTransparency}
-                onClick={() => setUseTransparency(!useTransparency)}
-              >
-                <span className={styles.toggleTrack} aria-hidden="true">
-                  <span className={styles.toggleThumb} />
-                </span>
-              </button>
+              )}
             </div>
           </div>
-
-          {/* Right: Path */}
-          <div className={styles.pathColumn}>
-            <div className={styles.settingRow}>
-              <AnimatedText className={styles.settingLabel}>{t("settings.path.label")}</AnimatedText>
-              <div className={styles.pathInputWrap}>
-                <input
-                  className={styles.pathInput}
-                  type="text"
-                  value={pathInput}
-                  onChange={(e) => handlePathInput(e.target.value)}
-                  onKeyDown={handlePathKeyDown}
-                  spellCheck={false}
-                  placeholder={t("settings.path.loading")}
-                />
-                <div className={`${styles.pathActions} ${pathDirty ? styles.pathActionsVisible : ""}`}>
-                  <button
-                    className={`${styles.pathActionButton} ${styles.pathActionConfirm} ${isSaving ? styles.pathActionButtonSaving : ""}`}
-                    type="button"
-                    onClick={handleSavePath}
-                    disabled={!pathDirty || isSaving}
-                    aria-label={t("settings.path.save")}
-                    title={t("settings.path.save")}
-                  >
-                    <CheckIcon />
-                  </button>
-                  <button
-                    className={`${styles.pathActionButton} ${styles.pathActionCancel}`}
-                    type="button"
-                    onClick={handleCancelPathChanges}
-                    disabled={!pathDirty || isSaving}
-                    aria-label={t("common.cancel")}
-                    title={t("common.cancel")}
-                  >
-                    <CloseIcon />
-                  </button>
-                </div>
-              </div>
-            </div>
-            {pathValidationError && (
-              <div className={styles.pathValidationError}>
-                <span className={styles.pathValidationDot} />
-                <AnimatedText className={styles.pathValidationTitle}>{t("settings.path.invalidTitle")}</AnimatedText>
-                <AnimatedText className={styles.pathValidationText}>{pathValidationError}</AnimatedText>
-              </div>
-            )}
-          </div>
-        </div>
       </section>
     </PagePanel>
   );

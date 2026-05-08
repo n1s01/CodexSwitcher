@@ -1,58 +1,6 @@
-@keyframes localeSlideUp {
-    from { opacity: 0; transform: translateY(6px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0)   scale(1);    }
-}
+/* ── Shared settings controls ───────────────────────────────── */
 
-@keyframes localeSlideDown {
-    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-
-@keyframes dropdownIn {
-    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-
-@keyframes optionIn {
-    from { opacity: 0; transform: translateX(-4px); }
-    to   { opacity: 1; transform: translateX(0);    }
-}
-
-@keyframes errorIn {
-    from { opacity: 0; transform: translateY(-4px); max-height: 0; }
-    to   { opacity: 1; transform: translateY(0);    max-height: 60px; }
-}
-
-@keyframes saveIn {
-    from { opacity: 0; transform: translateX(4px) scale(0.95); }
-    to   { opacity: 1; transform: translateX(0)   scale(1);    }
-}
-
-.page {
-    --accent-soft: rgba(167, 139, 250, 0.18);
-    --accent-mid: rgba(167, 139, 250, 0.34);
-    --accent-strong: rgba(167, 139, 250, 0.66);
-    --accent-text: rgba(224, 220, 255, 0.96);
-    container-type: inline-size;
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.settingsGrid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0 40px;
-    align-items: start;
-}
-
-@media (min-width: 680px) {
-    .settingsGrid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-.settingRow {
+.row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -60,16 +8,7 @@
     padding: 10px 0;
 }
 
-.settingRowError {
-    border-color: rgba(248, 113, 113, 0.25);
-}
-
-.pathColumn {
-    display: flex;
-    flex-direction: column;
-}
-
-.settingLabel {
+.label {
     color: rgba(255, 255, 255, 0.62);
     font-size: 0.835rem;
     font-weight: 460;
@@ -77,26 +16,21 @@
     flex-shrink: 0;
 }
 
-.settingCopy {
+.labelWrap {
     display: flex;
     flex-direction: column;
     gap: 3px;
     min-width: 0;
 }
 
-.settingDescription {
+.description {
     color: rgba(255, 255, 255, 0.34);
     font-size: 0.74rem;
     font-weight: 410;
     line-height: 1.35;
 }
 
-/* ── Language dropdown ─────────────────────────────────────── */
-
-.languageMenu {
-    position: relative;
-    width: 126px;
-}
+/* ── Toggle ─────────────────────────────────────────────────── */
 
 .toggle {
     display: inline-flex;
@@ -105,8 +39,7 @@
     border: 0;
     background: transparent;
     cursor: pointer;
-    transition:
-        transform 140ms;
+    transition: transform 140ms;
 }
 
 .toggle:focus-visible {
@@ -123,9 +56,7 @@
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.24);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    transition:
-        background 160ms,
-        border-color 160ms;
+    transition: background 160ms, border-color 160ms;
 }
 
 .toggleTrack::before {
@@ -139,9 +70,7 @@
     border: 1.5px solid rgba(255, 255, 255, 0.7);
     background: transparent;
     transform: translate(-50%, -50%);
-    transition:
-        opacity 160ms,
-        transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity 160ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .toggleTrack::after {
@@ -155,9 +84,7 @@
     background: rgba(255, 255, 255, 0.92);
     transform: translate(-50%, -50%);
     opacity: 0;
-    transition:
-        opacity 160ms,
-        transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: opacity 160ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .toggleThumb {
@@ -169,9 +96,7 @@
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
     transform: translateX(0);
-    transition:
-        transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-        background 160ms;
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background 160ms;
 }
 
 .toggleOn .toggleTrack {
@@ -207,7 +132,14 @@
     box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
 }
 
-.languageButton {
+/* ── Dropdown button / select ──────────────────────────────── */
+
+.selectWrap {
+    position: relative;
+    width: 126px;
+}
+
+.selectButton {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -221,50 +153,27 @@
     font-size: 0.825rem;
     font-weight: 490;
     cursor: pointer;
-    transition:
-        border-color 140ms,
-        background 140ms,
-        color 140ms,
-        box-shadow 140ms;
+    transition: border-color 140ms, background 140ms, color 140ms, box-shadow 140ms;
     white-space: nowrap;
     overflow: hidden;
 }
 
-.languageButton:hover {
+.selectButton:hover {
     border-color: rgba(255, 255, 255, 0.12);
     background: rgba(255, 255, 255, 0.052);
     color: rgba(255, 255, 255, 0.92);
 }
 
-.languageButtonOpen {
-    border-color: var(--accent-strong);
-    box-shadow: 0 0 0 2px var(--accent-soft);
+.selectButtonOpen {
+    border-color: var(--accent-strong, rgba(167, 139, 250, 0.66));
+    box-shadow: 0 0 0 2px var(--accent-soft, rgba(167, 139, 250, 0.18));
 }
 
-.languageButtonInner {
+.selectButtonInner {
     display: flex;
     align-items: center;
     gap: 7px;
     min-width: 0;
-}
-
-.localeAnim_up {
-    animation: localeSlideUp 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.localeAnim_down {
-    animation: localeSlideDown 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.flagBadge {
-    font-size: 0.95em;
-    line-height: 1;
-}
-
-.languageName {
-    color: inherit;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .chevron {
@@ -288,7 +197,6 @@
     color: rgba(255, 255, 255, 0.62);
 }
 
-/* dropdown: always rendered, animated via clip + opacity */
 .dropdown {
     position: absolute;
     top: calc(100% + 6px);
@@ -299,17 +207,14 @@
     border: 1px solid rgba(255, 255, 255, 0.075);
     border-radius: 10px;
     background: rgba(20, 20, 22, 0.97);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.035),
-        0 12px 28px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 12px 28px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(18px) saturate(1.14);
     -webkit-backdrop-filter: blur(18px) saturate(1.14);
     pointer-events: none;
     opacity: 0;
     transform: translateY(-6px) scale(0.97);
     transform-origin: top right;
-    transition:
-        opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
         transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -335,9 +240,7 @@
     text-align: left;
     cursor: pointer;
     opacity: 0;
-    transition:
-        background 120ms,
-        color 120ms;
+    transition: background 120ms, color 120ms;
 }
 
 .dropdownOpen .option {
@@ -352,10 +255,10 @@
 
 .optionActive {
     background: rgba(167, 139, 250, 0.13);
-    color: var(--accent-text);
+    color: var(--accent-text, rgba(224, 220, 255, 0.96));
 }
 
-.optionStatusDot {
+.optionDot {
     width: 5px;
     height: 5px;
     border-radius: 999px;
@@ -364,14 +267,38 @@
     transition: background 200ms, box-shadow 200ms;
 }
 
-.optionActive .optionStatusDot {
+.optionActive .optionDot {
     background: #a78bfa;
     box-shadow: 0 0 0 2.5px rgba(167, 139, 250, 0.2);
 }
 
-/* ── Path input ────────────────────────────────────────────── */
+@keyframes optionIn {
+    from { opacity: 0; transform: translateX(-4px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
 
-.pathInputWrap {
+/* locale animation classes — pass via className on .selectButtonInner */
+.localeAnim_up {
+    animation: localeSlideUp 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.localeAnim_down {
+    animation: localeSlideDown 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes localeSlideUp {
+    from { opacity: 0; transform: translateY(6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+@keyframes localeSlideDown {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* ── Input with actions ────────────────────────────────────── */
+
+.inputWrap {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -379,7 +306,7 @@
     flex: 1 1 auto;
 }
 
-.pathInput {
+.input {
     flex: 1 1 auto;
     min-width: 0;
     height: 30px;
@@ -392,29 +319,25 @@
     font-weight: 420;
     font-family: ui-monospace, monospace;
     outline: none;
-    transition:
-        border-color 140ms,
-        background 140ms,
-        box-shadow 140ms,
-        color 140ms;
+    transition: border-color 140ms, background 140ms, box-shadow 140ms, color 140ms;
 }
 
-.pathInput::placeholder {
+.input::placeholder {
     color: rgba(255, 255, 255, 0.2);
 }
 
-.pathInput:focus {
+.input:focus {
     color: rgba(255, 255, 255, 0.84);
     background: rgba(255, 255, 255, 0.04);
-    box-shadow: 0 0 0 2px var(--accent-soft);
-    border-color: var(--accent-strong);
+    box-shadow: 0 0 0 2px var(--accent-soft, rgba(167, 139, 250, 0.18));
+    border-color: var(--accent-strong, rgba(167, 139, 250, 0.66));
 }
 
-.pathInputError {
+.inputError {
     border-color: rgba(252, 165, 165, 0.25);
 }
 
-.pathActions {
+.actions {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -424,20 +347,19 @@
     overflow: hidden;
     pointer-events: none;
     transform: translateX(-8px);
-    transition:
-        width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1),
         opacity 160ms ease,
         transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.pathActionsVisible {
+.actionsVisible {
     width: 66px;
     opacity: 1;
     pointer-events: auto;
     transform: translateX(0);
 }
 
-.pathActionButton {
+.actionButton {
     width: 30px;
     height: 30px;
     flex: 0 0 30px;
@@ -451,49 +373,49 @@
     color: rgba(255, 255, 255, 0.72);
     cursor: pointer;
     animation: saveIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
-    transition:
-        background 130ms,
-        border-color 130ms,
-        color 130ms,
-        box-shadow 130ms,
-        opacity 130ms;
+    transition: background 130ms, border-color 130ms, color 130ms, box-shadow 130ms, opacity 130ms;
 }
 
-.pathActionButton :global(svg) {
+.actionButton :global(svg) {
     width: 15px;
     height: 15px;
 }
 
-.pathActionButton:hover {
+.actionButton:hover {
     color: rgba(255, 255, 255, 0.96);
 }
 
-.pathActionButton:disabled,
-.pathActionButtonSaving {
+.actionButton:disabled,
+.actionButtonSaving {
     opacity: 0.5;
     cursor: default;
 }
 
-.pathActionConfirm {
-    border-color: var(--accent-mid);
+.actionConfirm {
+    border-color: var(--accent-mid, rgba(167, 139, 250, 0.34));
     background: rgba(167, 139, 250, 0.1);
-    color: var(--accent-text);
+    color: var(--accent-text, rgba(224, 220, 255, 0.96));
 }
 
-.pathActionConfirm:hover {
+.actionConfirm:hover {
     background: rgba(167, 139, 250, 0.18);
-    border-color: var(--accent-strong);
-    box-shadow: 0 0 0 2px var(--accent-soft);
+    border-color: var(--accent-strong, rgba(167, 139, 250, 0.66));
+    box-shadow: 0 0 0 2px var(--accent-soft, rgba(167, 139, 250, 0.18));
 }
 
-.pathActionCancel:hover {
+.actionCancel:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.16);
 }
 
-/* ── Path validation error ─────────────────────────────────── */
+@keyframes saveIn {
+    from { opacity: 0; transform: translateX(4px) scale(0.95); }
+    to   { opacity: 1; transform: translateX(0)   scale(1); }
+}
 
-.pathValidationError {
+/* ── Validation error ──────────────────────────────────────── */
+
+.validationError {
     display: flex;
     align-items: center;
     gap: 5px;
@@ -502,24 +424,22 @@
     animation: errorIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.pathValidationDot {
+.validationDot {
     width: 4px;
     height: 4px;
     flex: 0 0 4px;
     border-radius: 999px;
     background: rgba(252, 165, 165, 0.6);
-    position: relative;
-    top: 0;
 }
 
-.pathValidationTitle {
+.validationTitle {
     color: rgba(252, 165, 165, 0.75);
     font-size: 0.755rem;
     font-weight: 500;
     white-space: nowrap;
 }
 
-.pathValidationText {
+.validationText {
     color: rgba(252, 165, 165, 0.45);
     font-size: 0.745rem;
     font-weight: 420;
@@ -529,16 +449,25 @@
     min-width: 0;
 }
 
-:global(body[data-use-transparency="off"]) .languageButton,
-:global(body[data-use-transparency="off"]) .dropdown,
-:global(body[data-use-transparency="off"]) .pathInput,
-:global(body[data-use-transparency="off"]) .pathActionButton,
-:global(body[data-use-transparency="off"]) .toggleTrack {
+@keyframes errorIn {
+    from { opacity: 0; transform: translateY(-4px); max-height: 0; }
+    to   { opacity: 1; transform: translateY(0);    max-height: 60px; }
+}
+
+/* ── Transparency-off overrides ────────────────────────────── */
+
+:global(body[data-use-transparency="off"]) .selectButton,
+:global(body[data-use-transparency="off"]) .input,
+:global(body[data-use-transparency="off"]) .actionButton {
     background: #1c1c1e;
     border-color: rgba(255, 255, 255, 0.08);
 }
 
+:global(body[data-use-transparency="off"]) .dropdown {
+    background: rgba(20, 20, 22, 0.99);
+}
+
 :global(body[data-use-transparency="off"]) .toggleOn .toggleTrack {
-    background: #8b8b93;
-    border-color: #8b8b93;
+    background: rgba(167, 139, 250, 0.92);
+    border-color: rgba(167, 139, 250, 0.92);
 }
