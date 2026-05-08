@@ -39,7 +39,7 @@ function detectOs() {
 }
 
 export function App() {
-  const { t, useTransparency } = useI18n();
+  const { t, useTransparency, useAnimations } = useI18n();
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
@@ -152,11 +152,13 @@ export function App() {
 
   useEffect(() => {
     document.body.dataset.useTransparency = useTransparency ? "on" : "off";
+    document.body.dataset.useAnimations = useAnimations ? "on" : "off";
 
     return () => {
       delete document.body.dataset.useTransparency;
+      delete document.body.dataset.useAnimations;
     };
-  }, [useTransparency]);
+  }, [useTransparency, useAnimations]);
 
   useEffect(() => {
     const runAutoRefresh = async () => {
@@ -326,7 +328,7 @@ export function App() {
       contentViewportRef.current.scrollTo({ top: 0, behavior: "auto" });
     }
 
-    if (prefersReducedMotion) {
+    if (!useAnimations || prefersReducedMotion) {
       setLeavingTab(null);
       setIsTabTransitioning(false);
       return;
@@ -349,7 +351,7 @@ export function App() {
   };
 
   return (
-    <div className={styles.shell} data-use-transparency={useTransparency ? "on" : "off"}>
+    <div className={styles.shell} data-use-transparency={useTransparency ? "on" : "off"} data-use-animations={useAnimations ? "on" : "off"}>
       <Titlebar isMac={isMac} isWindows={isWindows} />
 
       <div

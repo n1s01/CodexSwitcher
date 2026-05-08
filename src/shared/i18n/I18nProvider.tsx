@@ -6,7 +6,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { resolveInitialLocale, resolveInitialTransparency, saveStoredSettings } from "../config/app-settings";
+import { resolveInitialLocale, resolveInitialTransparency, resolveInitialAnimations, saveStoredSettings } from "../config/app-settings";
 import { messages, type Locale, type TranslationKey } from "./messages";
 
 type TranslationValue = string | number;
@@ -17,6 +17,8 @@ interface I18nContextValue {
   setLocale: (locale: Locale) => void;
   useTransparency: boolean;
   setUseTransparency: (value: boolean) => void;
+  useAnimations: boolean;
+  setUseAnimations: (value: boolean) => void;
   t: (key: TranslationKey, params?: TranslationParams) => string;
   formatDateTime: (timestamp: number | null | undefined) => string;
   formatDateTimeFromMs: (timestamp: number | null | undefined) => string;
@@ -54,10 +56,11 @@ export function I18nProvider({
 }: PropsWithChildren<{ defaultLocale?: Locale }>) {
   const [locale, setLocale] = useState<Locale>(() => defaultLocale ?? resolveInitialLocale());
   const [useTransparency, setUseTransparency] = useState<boolean>(() => resolveInitialTransparency());
+  const [useAnimations, setUseAnimations] = useState<boolean>(() => resolveInitialAnimations());
 
   useEffect(() => {
-    saveStoredSettings({ locale, useTransparency });
-  }, [locale, useTransparency]);
+    saveStoredSettings({ locale, useTransparency, useAnimations });
+  }, [locale, useTransparency, useAnimations]);
 
   const value = useMemo<I18nContextValue>(() => {
     const dictionary = messages[locale];
@@ -68,6 +71,8 @@ export function I18nProvider({
       setLocale,
       useTransparency,
       setUseTransparency,
+      useAnimations,
+      setUseAnimations,
       t: (key, params) => interpolate(dictionary[key], params),
       formatDateTime: (timestamp) => {
         if (!timestamp) {
@@ -103,7 +108,7 @@ export function I18nProvider({
         return `${Math.round(value)}%`;
       },
     };
-  }, [locale, useTransparency]);
+  }, [locale, useTransparency, useAnimations]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
