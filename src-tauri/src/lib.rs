@@ -36,6 +36,7 @@ use window_vibrancy::{apply_acrylic, apply_mica};
 use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
 const ACCOUNTS_FILE_NAME: &str = ".accounts.json";
+const APP_SETTINGS_FILE_NAME: &str = "settings.json";
 const AUTH_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
 const AUTH_REDIRECT_URI: &str = "http://localhost:1455/auth/callback";
 const AUTH_SCOPE: &str = "openid profile email offline_access";
@@ -154,6 +155,12 @@ struct AccountTransferEnvelope {
     accounts: Vec<StoredAccount>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct AppSettings {
+    codex_directory_path: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct OAuthTokenResponse {
     access_token: String,
@@ -202,6 +209,32 @@ fn accounts_file_path(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir.join(ACCOUNTS_FILE_NAME))
+}
+
+fn app_settings_file_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join(APP_SETTINGS_FILE_NAME))
+}
+
+fn load_app_settings(app: &AppHandle) -> Result<AppSettings, String> {
+    let path = app_settings_file_path(app)?;
+
+    if !path.exists() {
+        return Ok(AppSettings::default());
+    }
+
+    let raw = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    serde_json::from_str(&raw).map_err(|e| e.to_string())
+}
+
+fn save_app_settings(app: &AppHandle, settings: &AppSettings) -> Result<(), String> {
+    let path = app_settings_file_path(app)?;
+    let tmp_path = path.with_extension("tmp");
+    let payload = serde_json::to_vec_pretty(settings).map_err(|e| e.to_string())?;
+
+    fs::write(&tmp_path, payload).map_err(|e| e.to_string())?;
+    fs::rename(&tmp_path, &path).map_err(|e| e.to_string())
 }
 
 fn transfer_blob_key() -> [u8; 32] {
@@ -399,6 +432,16 @@ fn save_codex_auth_file(app: &AppHandle, account: &StoredAccount) -> Result<(), 
 }
 
 fn codex_dir_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let settings = load_app_settings(app)?;
+
+    if let Some(path) = settings.codex_directory_path {
+        let trimmed = path.trim();
+
+        if !trimmed.is_empty() {
+            return Ok(PathBuf::from(trimmed));
+        }
+    }
+
     let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
     Ok(home_dir.join(".codex"))
 }
@@ -1521,6 +1564,9 @@ fn set_codex_directory_path(app: AppHandle, path: String) -> Result<(), String> 
     if !p.exists() {
         fs::create_dir_all(&p).map_err(|e| e.to_string())?;
     }
+    let mut settings = load_app_settings(&app)?;
+    settings.codex_directory_path = Some(p.to_string_lossy().into_owned());
+    save_app_settings(&app, &settings)?;
     Ok(())
 }
 
