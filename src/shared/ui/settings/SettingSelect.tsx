@@ -70,7 +70,7 @@ export function SettingSelect<V extends string>({
             className={`${styles.selectButtonInner} ${innerClassName ?? ""}`}
             key={innerKey}
           >
-            {selected.prefix}
+            {selected.prefix && <span className={styles.triggerPrefix}>{selected.prefix}</span>}
             <span>{selected.label}</span>
           </span>
           <span className={`${styles.chevron} ${isOpen ? styles.chevronOpen : ""}`}>
@@ -88,14 +88,13 @@ export function SettingSelect<V extends string>({
                 type="button"
                 role="option"
                 aria-selected={isActive}
-                style={{ transitionDelay: isOpen ? `${i * 28}ms` : "0ms" }}
+                style={{ animationDelay: isOpen ? `${60 + i * 55}ms` : "0ms" }}
                 onClick={() => {
                   onChange(option.value);
                   setIsOpen(false);
                 }}
               >
-                <span className={styles.optionDot} />
-                {option.prefix}
+                {option.prefix && <span className={styles.optionPrefix}>{option.prefix}</span>}
                 <span>{option.label}</span>
               </button>
             );
