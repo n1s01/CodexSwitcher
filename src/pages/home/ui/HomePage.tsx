@@ -4,6 +4,7 @@ import { useI18n } from "../../../shared/i18n/I18nProvider";
 import { AnimatedText } from "../../../shared/ui/animated-text/AnimatedText";
 import {
   importAccountFromJson,
+  exportAccountsJson,
   listAccounts,
   refreshAllAccounts,
   startCodexAuthorization,
@@ -20,6 +21,7 @@ import {
 } from "../../../shared/ui/icons/AppIcons";
 import { AddAccountModal } from "../../accounts/ui/AddAccountModal";
 import styles from "./HomePage.module.css";
+import { useToast } from "../../../shared/ui/toast/ToastProvider";
 
 const LOW_QUOTA_THRESHOLD = 20;
 const ACCOUNT_LIST_LIMIT = 4;
@@ -67,6 +69,33 @@ function getPlanLabel(planType: string | null) {
   }
 
   return planType.charAt(0).toUpperCase() + planType.slice(1).toLowerCase();
+}
+
+async function copyTextToClipboard(text: string, errorMessage: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Fall back to a hidden textarea if clipboard API is unavailable.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.append(textarea);
+  textarea.select();
+
+  const success = document.execCommand("copy");
+  textarea.remove();
+
+  if (!success) {
+    throw new Error(errorMessage);
+  }
 }
 
 function RotatingIcon({
@@ -143,9 +172,11 @@ function RotatingIcon({
 
 export function HomePage({ onOpenAccounts }: HomePageProps) {
   const { t, formatPercent } = useI18n();
+  const { showToast } = useToast();
   const [accounts, setAccounts] = useState<StoredAccountSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
 
@@ -199,15 +230,50 @@ export function HomePage({ onOpenAccounts }: HomePageProps) {
   };
 
   const handleImportAccount = async (rawJson: string) => {
-    const account = await importAccountFromJson(rawJson);
-    setAccounts((current) => upsertAccountSummary(current, account));
+    const importedAccounts = await importAccountFromJson(rawJson);
+    setAccounts((current) =>
+      importedAccounts.reduce(
+        (nextAccounts, account) => upsertAccountSummary(nextAccounts, account),
+        current,
+      ),
+    );
     setPageError(null);
+    showToast({
+      tone: "success",
+      title: t("accounts.toast.importedTitle"),
+      description: t("accounts.toast.importedDescription", {
+        count: importedAccounts.length,
+      }),
+    });
   };
 
   const handleAuthorizeAccount = async () => {
     const account = await startCodexAuthorization();
     setAccounts((current) => upsertAccountSummary(current, account));
     setPageError(null);
+  };
+
+  const handleExportAccounts = async () => {
+    if (isExporting || accounts.length === 0) {
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const rawBlob = await exportAccountsJson();
+      await copyTextToClipboard(rawBlob, t("home.export.error"));
+      showToast({
+        tone: "info",
+        title: t("home.export.done"),
+        description: t("home.export.doneDescription"),
+        durationMs: 2200,
+      });
+    } catch (error) {
+      setPageError(error instanceof Error ? error.message : t("accounts.error.generic"));
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const stats = useMemo(() => {
@@ -417,7 +483,12 @@ export function HomePage({ onOpenAccounts }: HomePageProps) {
             <span className={styles.linkIcon}><ChevronRightIcon /></span>
           </button>
 
-          <button className={`${styles.linkPanel} ${styles.exportPanel}`} type="button">
+          <button
+            className={`${styles.linkPanel} ${styles.exportPanel}`}
+            type="button"
+            onClick={() => void handleExportAccounts()}
+            disabled={isLoading || isExporting || accounts.length === 0}
+          >
             <span>{t("home.actions.export")}</span>
             <span className={styles.linkIcon}><ExportIcon /></span>
           </button>

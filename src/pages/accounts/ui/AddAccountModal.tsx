@@ -54,11 +54,12 @@ export function AddAccountModal({
   const authStageTimerRef = useRef<number | null>(null);
 
   const validation = validate(raw);
-  const canAdd = Boolean(validation?.accessToken);
+  const canAdd = raw.trim().length > 0;
 
   const hasContent = raw.trim().length > 0;
+  const isTransferBlob = raw.trim().startsWith("csx1.");
   const isValidJson = hasContent && validation !== null;
-  const isInvalidJson = hasContent && validation === null;
+  const isInvalidJson = hasContent && validation === null && !isTransferBlob;
   const isBusy = authStage !== "idle" || isSubmittingImport;
   const localizedValidation = validation
     ? {
@@ -204,12 +205,12 @@ export function AddAccountModal({
 
         {/* JSON field */}
         <div className={styles.body}>
-          <AnimatedText as="div" className={styles.fieldLabel}>{t("accounts.modal.authData")}</AnimatedText>
-          <div
-            className={`${styles.textareaWrap} ${
-              isValidJson ? styles.valid : isInvalidJson ? styles.invalid : ""
-            }`}
-          >
+            <AnimatedText as="div" className={styles.fieldLabel}>{t("accounts.modal.authData")}</AnimatedText>
+            <div
+              className={`${styles.textareaWrap} ${
+                isValidJson ? styles.valid : isInvalidJson ? styles.invalid : ""
+              }`}
+            >
             <textarea
               className={styles.textarea}
               value={raw}

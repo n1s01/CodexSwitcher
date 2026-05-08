@@ -395,9 +395,21 @@ export function AccountsPage() {
   };
 
   const handleImportAccount = async (rawJson: string) => {
-    const account = await importAccountFromJson(rawJson);
-    setAccounts((current) => upsertAccountSummary(current, account));
+    const importedAccounts = await importAccountFromJson(rawJson);
+    setAccounts((current) =>
+      importedAccounts.reduce(
+        (nextAccounts, account) => upsertAccountSummary(nextAccounts, account),
+        current,
+      ),
+    );
     setPageError(null);
+    showToast({
+      tone: "success",
+      title: t("accounts.toast.importedTitle"),
+      description: t("accounts.toast.importedDescription", {
+        count: importedAccounts.length,
+      }),
+    });
   };
 
   const handleAuthorizeAccount = async () => {
@@ -878,12 +890,12 @@ export function AccountsPage() {
                         title={
                           copiedAccountId === account.id
                             ? t("accounts.copy.done")
-                            : t("accounts.copy.json")
+                            : t("accounts.copy.transfer")
                         }
                         aria-label={
                           copiedAccountId === account.id
                             ? t("accounts.copy.done")
-                            : t("accounts.copy.json")
+                            : t("accounts.copy.transfer")
                         }
                       >
                         <span className={styles.actionIcon}>
