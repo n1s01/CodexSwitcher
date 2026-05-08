@@ -1,4 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap");
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/fonts/InterVariable.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   color-scheme: dark;
@@ -6,7 +12,7 @@
   line-height: 1.5;
   font-weight: 400;
   color: #e0e0e0;
-  background: #111111;
+  background: transparent;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -18,8 +24,31 @@
 html, body, #root {
   margin: 0;
   height: 100%;
+  background: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-body { min-height: 100vh; }
-button { font: inherit; cursor: pointer; }
+body[data-use-transparency="off"],
+body[data-use-transparency="off"] #root {
+  background: #1c1c1e;
+}
+
+img, svg, canvas, video {
+  -webkit-user-drag: none;
+}
+
+body {
+  min-height: 100vh;
+  background: transparent;
+  overflow: hidden;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+[data-tauri-drag-region] {
+  app-region: drag;
+}
+
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
 h1, h2, h3, p { margin: 0; }

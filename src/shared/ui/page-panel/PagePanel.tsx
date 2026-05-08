@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { AnimatedText } from "../animated-text/AnimatedText";
 import styles from "./PagePanel.module.css";
 
 type PagePanelProps = {
@@ -10,8 +11,8 @@ type PagePanelProps = {
 export function PagePanel({ title, subtitle, children }: PagePanelProps) {
   return (
     <section className={styles.panel}>
-      <h1 className={styles.heading}>{title}</h1>
-      {subtitle && <p className={styles.sub}>{subtitle}</p>}
+      <AnimatedText as="h1" className={styles.heading}>{title}</AnimatedText>
+      {subtitle && <AnimatedText as="p" className={styles.sub}>{subtitle}</AnimatedText>}
       {children && <div className={styles.body}>{children}</div>}
     </section>
   );

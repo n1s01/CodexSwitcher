@@ -1,0 +1,516 @@
+/* ── Shared settings controls ───────────────────────────────── */
+
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+}
+
+.label {
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.835rem;
+    font-weight: 460;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.labelWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.description {
+    color: rgba(255, 255, 255, 0.34);
+    font-size: 0.74rem;
+    font-weight: 410;
+    line-height: 1.35;
+}
+
+/* ── Toggle ─────────────────────────────────────────────────── */
+
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    transition: transform 140ms;
+}
+
+.toggle:focus-visible {
+    outline: 0;
+}
+
+.toggleTrack {
+    position: relative;
+    width: 52px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: background 160ms, border-color 160ms;
+}
+
+.toggleTrack::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 40px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    background: transparent;
+    transform: translate(-50%, -50%);
+    transition: opacity 160ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.toggleTrack::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    width: 2px;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 160ms, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.toggleThumb {
+    position: relative;
+    z-index: 1;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    transform: translateX(0);
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background 160ms;
+}
+
+.toggleOn .toggleTrack {
+    background: rgba(167, 139, 250, 0.92);
+    border-color: rgba(167, 139, 250, 0.92);
+}
+
+.toggleOn .toggleTrack::before {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+}
+
+.toggleOn .toggleTrack::after {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+}
+
+.toggleOn .toggleThumb {
+    transform: translateX(28px);
+    background: #ffffff;
+}
+
+.toggle:active .toggleThumb {
+    transform: translateX(0);
+}
+
+.toggleOn:active .toggleThumb {
+    transform: translateX(28px);
+}
+
+.toggle:focus-visible .toggleTrack {
+    border-color: rgba(167, 139, 250, 0.28);
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
+}
+
+/* ── Select / dropdown ─────────────────────────────────────── */
+
+.selectWrap {
+    position: relative;
+}
+
+.selectButton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 140px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 9px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.8125rem;
+    font-weight: 430;
+    cursor: pointer;
+    white-space: nowrap;
+    -webkit-user-select: none;
+    user-select: none;
+    transition:
+        border-color 200ms,
+        background 200ms,
+        color 200ms;
+}
+
+.selectButton:hover {
+    border-color: rgba(255, 255, 255, 0.13);
+    background: rgba(255, 255, 255, 0.035);
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.selectButtonOpen {
+    border-color: rgba(167, 139, 250, 0.3);
+    background: rgba(167, 139, 250, 0.04);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.selectButtonInner {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.triggerPrefix {
+    font-size: 1.05em;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+.chevron {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.2);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms;
+}
+
+.chevron :global(svg) {
+    width: 100%;
+    height: 100%;
+}
+
+.chevronOpen {
+    transform: rotate(180deg);
+    color: rgba(167, 139, 250, 0.55);
+}
+
+.dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 100%;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    background: #18181b;
+    box-shadow:
+        0 16px 40px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.94) translateY(-6px);
+    transform-origin: top right;
+    transition:
+        opacity 120ms ease-out,
+        transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdownOpen {
+    pointer-events: auto;
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.option {
+    width: 100%;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.44);
+    font-size: 0.8125rem;
+    font-weight: 420;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition:
+        background 80ms,
+        color 80ms;
+}
+
+.dropdownOpen .option {
+    animation: optionSpring 340ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.option:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.optionActive {
+    background: rgba(167, 139, 250, 0.08);
+    color: rgba(224, 220, 255, 0.88);
+    font-weight: 440;
+}
+
+.optionActive:hover {
+    background: rgba(167, 139, 250, 0.13);
+}
+
+.optionPrefix {
+    font-size: 1.05em;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.85;
+}
+
+@keyframes optionSpring {
+    0% {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(0.5px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Transparency-off overrides (select) ───────────────────── */
+
+:global(body[data-use-transparency="off"]) .selectButton {
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+:global(body[data-use-transparency="off"]) .selectButton:hover {
+    background: #1e1e20;
+}
+
+:global(body[data-use-transparency="off"]) .selectButtonOpen {
+    background: rgba(167, 139, 250, 0.04);
+}
+
+:global(body[data-use-transparency="off"]) .dropdown {
+    background: #161619;
+}
+
+/* ── Reduced motion ────────────────────────────────────────── */
+
+:global(body[data-use-animations="off"]) .dropdown {
+    transition: none;
+}
+
+:global(body[data-use-animations="off"]) .dropdownOpen {
+    transform: scale(1) translateY(0);
+}
+
+:global(body[data-use-animations="off"]) .option {
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+:global(body[data-use-animations="off"]) .selectButton,
+:global(body[data-use-animations="off"]) .chevron {
+    transition: none;
+}
+
+/* ── Input with actions ────────────────────────────────────── */
+
+.inputWrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.775rem;
+    font-weight: 420;
+    font-family: ui-monospace, monospace;
+    outline: none;
+    transition: border-color 140ms, background 140ms, box-shadow 140ms, color 140ms;
+}
+
+.input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.input:focus {
+    color: rgba(255, 255, 255, 0.84);
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 0 0 2px var(--accent-soft, rgba(167, 139, 250, 0.18));
+    border-color: var(--accent-strong, rgba(167, 139, 250, 0.66));
+}
+
+.inputError {
+    border-color: rgba(252, 165, 165, 0.25);
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transform: translateX(-8px);
+    transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 160ms ease,
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.actionsVisible {
+    width: 66px;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+.actionButton {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.035);
+    color: rgba(255, 255, 255, 0.72);
+    cursor: pointer;
+    animation: saveIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: background 130ms, border-color 130ms, color 130ms, box-shadow 130ms, opacity 130ms;
+}
+
+.actionButton :global(svg) {
+    width: 15px;
+    height: 15px;
+}
+
+.actionButton:hover {
+    color: rgba(255, 255, 255, 0.96);
+}
+
+.actionButton:disabled,
+.actionButtonSaving {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.actionConfirm {
+    border-color: var(--accent-mid, rgba(167, 139, 250, 0.34));
+    background: rgba(167, 139, 250, 0.1);
+    color: var(--accent-text, rgba(224, 220, 255, 0.96));
+}
+
+.actionConfirm:hover {
+    background: rgba(167, 139, 250, 0.18);
+    border-color: var(--accent-strong, rgba(167, 139, 250, 0.66));
+    box-shadow: 0 0 0 2px var(--accent-soft, rgba(167, 139, 250, 0.18));
+}
+
+.actionCancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+@keyframes saveIn {
+    from { opacity: 0; transform: translateX(4px) scale(0.95); }
+    to   { opacity: 1; transform: translateX(0)   scale(1); }
+}
+
+/* ── Validation error ──────────────────────────────────────── */
+
+.validationError {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding-left: 2px;
+    margin-top: 4px;
+    animation: errorIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.validationDot {
+    width: 4px;
+    height: 4px;
+    flex: 0 0 4px;
+    border-radius: 999px;
+    background: rgba(252, 165, 165, 0.6);
+}
+
+.validationTitle {
+    color: rgba(252, 165, 165, 0.75);
+    font-size: 0.755rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.validationText {
+    color: rgba(252, 165, 165, 0.45);
+    font-size: 0.745rem;
+    font-weight: 420;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+@keyframes errorIn {
+    from { opacity: 0; transform: translateY(-4px); max-height: 0; }
+    to   { opacity: 1; transform: translateY(0);    max-height: 60px; }
+}
+
+/* ── Transparency-off overrides ────────────────────────────── */
+
+:global(body[data-use-transparency="off"]) .input,
+:global(body[data-use-transparency="off"]) .actionButton {
+    background: #1c1c1e;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:global(body[data-use-transparency="off"]) .toggleOn .toggleTrack {
+    background: rgba(167, 139, 250, 0.92);
+    border-color: rgba(167, 139, 250, 0.92);
+}

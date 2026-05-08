@@ -1,0 +1,63 @@
+.titlebar {
+  position: relative;
+  z-index: 1;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  background: transparent;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.titlebarLead {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.trafficLightsOffset {
+  width: 122px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.windowControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.windowControl {
+  width: 40px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(255, 255, 255, 0.8);
+  transition: background 150ms, color 150ms, transform 150ms;
+}
+
+.windowControl:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.96);
+  transform: translateY(-1px);
+}
+
+.windowControlClose:hover {
+  background: rgba(255, 69, 58, 0.9);
+  color: #ffffff;
+}
+
+.windowControl :global(svg) {
+  width: 14px;
+  height: 14px;
+}

@@ -1,200 +1,171 @@
 .shell {
+  position: relative;
+  isolation: isolate;
   height: 100vh;
   display: flex;
-  background: #111111;
-  padding: 10px;
-  gap: 8px;
-}
-
-/* ─── Sidebar ─────────────────────────────────────── */
-
-.sidebar {
-  display: flex;
   flex-direction: column;
-  width: 280px;
-  flex-shrink: 0;
-  background: #1a1a1a;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 18px 14px 14px;
-  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent;
+  padding: 0;
+  gap: 0;
 }
 
-.sidebarCollapsed {
-  width: 76px;
+:global(body[data-use-transparency="off"]) .shell {
+  background: #1c1c1e;
 }
 
-/* ─── Brand block ──────────────────────────────────── */
-
-.brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 4px 18px;
-  gap: 10px;
-  overflow: hidden;
-}
-
-.brandExpanded {
-  flex-direction: row;
-  align-items: center;
-  padding: 6px 8px 18px;
-}
-
-.brandLogo {
-  width: 34px;
-  height: 34px;
-  flex-shrink: 0;
-  object-fit: contain;
-}
-
-.brandText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.brandName {
-  font-size: 1rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 50%, #3b82f6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.015em;
-  white-space: nowrap;
-}
-
-.brandSub {
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.2);
-  letter-spacing: 0;
-  white-space: nowrap;
-}
-
-/* ─── Divider ──────────────────────────────────────── */
-
-.divider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.05);
-  margin: 0 4px 10px;
-  flex-shrink: 0;
-}
-
-/* ─── Nav ──────────────────────────────────────────── */
-
-.nav {
+.workspace {
+  position: relative;
+  z-index: 1;
   flex: 1;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  padding: 0 18px 16px;
 }
 
-.navItem {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 12px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.32);
-  text-align: left;
-  transition: background 150ms, color 150ms;
-  white-space: nowrap;
-  overflow: hidden;
+.workspaceResizing {
+  cursor: ew-resize;
 }
 
-.navItem:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.navItemActive {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.navItemCollapsed {
-  justify-content: center;
-  padding: 12px 0;
-}
-
-.navIcon {
-  width: 20px;
-  height: 20px;
+.resizeHandle {
+  width: 12px;
   flex-shrink: 0;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
+  cursor: ew-resize;
+  touch-action: none;
 }
 
-.navIcon :global(svg) {
-  width: 20px;
-  height: 20px;
-}
-
-.navLabel {
-  font-size: 0.9rem;
-  font-weight: 400;
-  letter-spacing: -0.005em;
-}
-
-/* ─── Collapse button ──────────────────────────────── */
-
-.collapseBtn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.resizeHandleGrip {
   width: 100%;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.18);
-  margin-top: 6px;
-  transition: background 150ms, color 150ms;
-  white-space: nowrap;
-  overflow: hidden;
 }
-
-.collapseBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.collapseBtnCollapsed {
-  justify-content: center;
-  padding: 10px 0;
-}
-
-.collapseBtn :global(svg) {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.collapseBtnLabel {
-  font-size: 0.78rem;
-  font-weight: 400;
-}
-
-/* ─── Content ──────────────────────────────────────── */
 
 .content {
   flex: 1;
   min-width: 0;
-  background: #1a1a1a;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 40px 48px;
+  background: rgba(28, 28, 30, 0.94);
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px) saturate(1.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+:global(body[data-use-transparency="off"]) .content {
+  background: #1c1c1e;
+  border-color: rgba(255, 255, 255, 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.contentInner {
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.contentInnerLocked {
+  overflow: hidden;
+}
+
+.tabScene {
+  position: relative;
+  height: 100%;
+  min-height: 100%;
+}
+
+.tabSceneForward {
+  --tab-enter-x: 54px;
+  --tab-exit-x: -38px;
+}
+
+.tabSceneBackward {
+  --tab-enter-x: -54px;
+  --tab-exit-x: 38px;
+}
+
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  padding: 42px 48px;
+}
+
+.tabPanelCurrent {
+  position: relative;
+  z-index: 1;
   overflow-y: auto;
+}
+
+.tabPanelEntering,
+.tabPanelLeaving {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  will-change: transform, opacity, filter, clip-path;
+  pointer-events: none;
+}
+
+.tabPanelEntering {
+  z-index: 2;
+  animation: tab-enter 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tabPanelLeaving {
+  z-index: 1;
+  animation: tab-leave 720ms cubic-bezier(0.32, 0, 0.15, 1) both;
+}
+
+@keyframes tab-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--tab-enter-x), 28px, 0) scale(0.975);
+    filter: blur(18px) saturate(1.08);
+    clip-path: inset(0 0 14% 0 round 24px);
+  }
+
+  55% {
+    opacity: 1;
+    transform: translate3d(calc(var(--tab-enter-x) * -0.12), 0, 0) scale(1.005);
+    filter: blur(0) saturate(1);
+    clip-path: inset(0 0 0 0 round 24px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0) saturate(1);
+    clip-path: inset(0 0 0 0 round 24px);
+  }
+}
+
+@keyframes tab-leave {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0) saturate(1);
+    clip-path: inset(0 0 0 0 round 24px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--tab-exit-x), -18px, 0) scale(0.985);
+    filter: blur(20px) saturate(0.88);
+    clip-path: inset(10% 0 0 0 round 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabPanelEntering,
+  .tabPanelLeaving {
+    animation: none;
+  }
 }
