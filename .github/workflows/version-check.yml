@@ -1,0 +1,30 @@
+name: "check version is new"
+
+on: push
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: extract version from tauri.conf.json
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Extracted version: $VERSION"
+
+      - name: check release does not already exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="v${VERSION}"
+
+          if gh release view "$TAG" &>/dev/null; then
+            echo "::error::Release $TAG already exists. Bump the version in src-tauri/tauri.conf.json."
+            exit 1
+          fi
+
+          echo "Version $VERSION ($TAG) is new — good to merge."

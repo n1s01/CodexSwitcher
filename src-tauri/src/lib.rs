@@ -1173,6 +1173,7 @@ fn build_authorize_url(state: &str, code_challenge: &str) -> Result<Url, String>
         .append_pair("id_token_add_organizations", "true")
         .append_pair("codex_cli_simplified_flow", "true")
         .append_pair("originator", AUTH_ORIGINATOR)
+        .append_pair("prompt", "login")
         .append_pair("state", state);
     Ok(url)
 }
@@ -1449,6 +1450,10 @@ async fn start_codex_authorization(app: AppHandle) -> Result<StoredAccountSummar
     let authorize_url = build_authorize_url(&state, &code_challenge)?;
     let (cancel_tx, cancel_rx) = oneshot::channel::<()>();
     let cancel_sender = Arc::new(Mutex::new(Some(cancel_tx)));
+
+    if let Some(main_window) = app.get_webview_window("main") {
+        let _ = main_window.clear_all_browsing_data();
+    }
 
     let auth_window = tauri::WebviewWindowBuilder::new(
         &app,
