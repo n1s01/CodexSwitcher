@@ -1,18 +1,20 @@
+**English** | [Русский](README.ru.md) | [中文](README.zh.md)
+
 # CodexSwitcher
 
-Десктопное приложение для переключения между аккаунтами [OpenAI Codex](https://openai.com/index/introducing-codex/). Одна команда — и вы под другим профилем, со своими токенами, лимитами и настройками.
+A desktop app for switching between [OpenAI Codex](https://openai.com/index/introducing-codex/) accounts. One click — and you're on a different profile, with its own tokens, limits, and settings.
 
-## Возможности
+## Features
 
-- **OAuth-авторизация** — вход через OpenAI с PKCE, без передачи пароля приложению
-- **Несколько аккаунтов** — храните любое количество профилей, переключайтесь в один клик
-- **Автообновление токенов** — refresh token используется прозрачно, сессия не протухает
-- **Статистика использования** — видно процент исчерпания лимита и время сброса для каждого аккаунта
-- **Импорт / экспорт** — аккаунты шифруются (AES-256-GCM) и переносятся между машинами одной строкой
-- **Кастомная директория Codex** — можно указать нестандартный путь к `.codex/`
-- **MacOS / Windows / Linux** — нативные сборки под все платформы
+- **OAuth login** — sign in via OpenAI with PKCE, no password shared with the app
+- **Multiple accounts** — store as many profiles as you need, switch in one click
+- **Auto token refresh** — refresh tokens are used transparently, sessions don't expire
+- **Usage stats** — see limit usage percentage and reset time for each account
+- **Import / export** — accounts are encrypted (AES-256-GCM) and transferred between machines as a single string
+- **Custom Codex directory** — point to a non-default `.codex/` path
+- **macOS / Windows / Linux** — native builds for all platforms
 
-## Установка
+## Install
 
 ### macOS / Linux
 
@@ -20,7 +22,7 @@
 curl -fsSL https://raw.githubusercontent.com/n1s01/CodexSwitcher/main/install.sh | sh
 ```
 
-Или скачать скрипт и запустить вручную:
+Or download and run manually:
 
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/n1s01/CodexSwitcher/main/install.sh
@@ -34,12 +36,12 @@ chmod +x install.sh
 irm https://raw.githubusercontent.com/n1s01/CodexSwitcher/main/install.ps1 | iex
 ```
 
-### Вручную
+### Manual download
 
-Скачайте установщик для вашей платформы со [страницы релизов](https://github.com/n1s01/CodexSwitcher/releases/latest):
+Grab the installer for your platform from the [latest release](https://github.com/n1s01/CodexSwitcher/releases/latest):
 
-| Платформа | Файл |
-|-----------|------|
+| Platform | File |
+|----------|------|
 | macOS Apple Silicon | `CodexSwitcher_*_aarch64.dmg` |
 | macOS Intel | `CodexSwitcher_*_x64.dmg` |
 | Windows | `CodexSwitcher_*_x64-setup.exe` |
@@ -47,64 +49,64 @@ irm https://raw.githubusercontent.com/n1s01/CodexSwitcher/main/install.ps1 | iex
 | Linux (AppImage) | `CodexSwitcher_*_amd64.AppImage` |
 | Linux (rpm) | `CodexSwitcher-*.x86_64.rpm` |
 
-## Разработка
+## Development
 
-### Требования
+### Prerequisites
 
 - [Node.js](https://nodejs.org/) 20+
 - [Rust](https://rustup.rs/) stable
-- [Tauri CLI](https://v2.tauri.app/) (опционально, устанавливается через npm)
+- [Tauri CLI](https://v2.tauri.app/) (optional, installed via npm)
 
-### Запуск в dev-режиме
+### Dev mode
 
 ```bash
 npm install
 npm run tauri dev
 ```
 
-### Сборка
+### Build
 
 ```bash
 npm run tauri build
 ```
 
-Бинарники появятся в `src-tauri/target/release/bundle/`.
+Binaries land in `src-tauri/target/release/bundle/`.
 
-## Архитектура
+## Architecture
 
 ```
 CodexSwitcher/
-├── src/                    # React-фронтенд (TypeScript, Vite)
-│   ├── app/                # Корень приложения, стили
-│   ├── pages/              # Страницы: аккаунты, настройки, домашняя
-│   ├── features/           # Feature-based модули (навигация)
-│   ├── widgets/            # Переиспользуемые виджеты (сайдбар, тайтлбар)
-│   └── shared/             # Общие утилиты: i18n, UI-компоненты, конфиг
-├── src-tauri/              # Rust-бэкенд (Tauri v2)
+├── src/                    # React frontend (TypeScript, Vite)
+│   ├── app/                # App root, global styles
+│   ├── pages/              # Pages: accounts, settings, home
+│   ├── features/           # Feature-based modules (navigation)
+│   ├── widgets/            # Reusable widgets (sidebar, titlebar)
+│   └── shared/             # Shared utils: i18n, UI components, config
+├── src-tauri/              # Rust backend (Tauri v2)
 │   └── src/
-│       ├── lib.rs          # Tauri-команды, бизнес-логика, OAuth, шифрование
-│       └── main.rs         # Точка входа
-├── install.sh              # Установщик для macOS / Linux
-├── install.ps1             # Установщик для Windows
+│       ├── lib.rs          # Tauri commands, business logic, OAuth, crypto
+│       └── main.rs         # Entry point
+├── install.sh              # macOS / Linux installer
+├── install.ps1             # Windows installer
 └── .github/workflows/      # CI/CD
-    ├── release.yml         # Сборка под macOS/Win/Linux при пуше в main
-    └── version-check.yml   # Блокирует повторный релиз с той же версией
+    ├── release.yml         # Build for macOS/Win/Linux on push to main
+    └── version-check.yml   # Blocks re-release of an existing version
 ```
 
-### Как работает переключение
+### How switching works
 
-При смене аккаунта приложение:
+When you switch accounts, the app:
 
-1. Принудительно завершает процесс Codex
-2. Очищает runtime-состояние: `auth.json`, `config.toml`, shell-переменные окружения, session storage
-3. Записывает токены выбранного аккаунта в `~/.codex/auth.json`
-4. Перезапускает Codex
+1. Force-stops the Codex process
+2. Cleans up runtime state: `auth.json`, `config.toml`, shell env vars, session storage
+3. Writes the selected account's tokens to `~/.codex/auth.json`
+4. Restarts Codex
 
 ## CI/CD
 
-- **`release.yml`** — при пуше в `main` собирает бинарники под macOS (aarch64 + x86_64), Windows и Linux, создаёт GitHub Release с тегом `v{версия}`
-- **`version-check.yml`** — при любом пуше проверяет, что версия в `src-tauri/tauri.conf.json` ещё не была зарелизена. Если тег уже существует — билд блокируется
+- **`release.yml`** — on push to `main`: builds binaries for macOS (aarch64 + x86_64), Windows, and Linux, creates a GitHub Release tagged `v{version}`
+- **`version-check.yml`** — on every push: verifies the version in `src-tauri/tauri.conf.json` hasn't been released yet. Blocks the push if the tag already exists.
 
-## Лицензия
+## License
 
 MIT
