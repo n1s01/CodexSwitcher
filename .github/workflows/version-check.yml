@@ -1,9 +1,6 @@
 name: "check version is new"
 
-on:
-  pull_request:
-    branches:
-      - main
+on: push
 
 jobs:
   version-check:
@@ -26,7 +23,7 @@ jobs:
           TAG="v${VERSION}"
 
           if gh release view "$TAG" &>/dev/null; then
-            echo "::error::Release $TAG already exists. Bump the version in src-tauri/tauri.conf.json before merging to main."
+            echo "::error::Release $TAG already exists. Bump the version in src-tauri/tauri.conf.json."
             exit 1
           fi
 
