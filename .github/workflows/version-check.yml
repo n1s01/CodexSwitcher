@@ -1,6 +1,9 @@
 name: "check version is new"
 
-on: push
+on:
+  push:
+    branches-ignore:
+      - main
 
 jobs:
   version-check:
